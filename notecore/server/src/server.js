@@ -1,65 +1,80 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
-const { Pool } = require('pg');
-
-const notesRoutes = require('./routes/notes');
-const authRoutes = require('./routes/auth');
+const pool = require('./db');
+const notesRouter = require('./routes/notes');
 
 const app = express();
-const port = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// --- CORS ---
+// Allow your frontend origin and handle credentials
+app.use(cors({
+  origin: 'https://redesigned-xylophone-qjw5vqvq47h4vgr-5173.app.github.dev', 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-user-id'],
+  credentials: true
+}));
+
+// Parse JSON bodies
 app.use(express.json());
 
-// ADD THIS: Log all incoming requests
+// --- Attach userId from header ---
 app.use((req, res, next) => {
-  console.log(`==================`);
-  console.log(`Incoming request: ${req.method} ${req.path}`);
-  console.log(`Full URL: ${req.originalUrl}`);
-  console.log(`==================`);
+  const userId = req.headers['x-user-id'];
+  if (userId) req.userId = parseInt(userId);
   next();
 });
 
-// Database connection (optional fallback if unreachable)
-let pool;
-try {
-  pool = new Pool({
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT) || 5432,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    family: 4
-  });
+// --- AUTH ROUTES ---
+app.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-  pool.connect()
-    .then(() => console.log('DB connected successfully!'))
-    .catch(err => console.warn('DB connection warning (continuing anyway):', err));
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
+    const user = result.rows[0];
 
-} catch (err) {
-  console.warn('DB setup failed, continuing without DB:', err);
-}
+    if (!user || user.password !== password) return res.status(401).json({ error: 'Invalid credentials' });
 
-app.locals.db = pool;
-
-// --- Routes (order matters!) ---
-app.get('/', (req, res) => {
-  console.log('ROOT ROUTE HIT');
-  res.send('Backend is running!');
+    res.json({ userId: user.id, username: user.username });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-app.get('/test', (req, res) => {
-  console.log('TEST ROUTE HIT!!!');
-  res.json({ message: 'Test route is working!' });
+app.post('/auth/register', async (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) return res.status(400).json({ error: 'All fields are required' });
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username',
+      [username, email, password]
+    );
+    res.json({ userId: result.rows[0].id, username: result.rows[0].username });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
 });
 
-app.use('/notes', notesRoutes);
-app.use('/auth', authRoutes);
+// --- NOTES ROUTES ---
+app.use('/notes', notesRouter);
 
-// --- Start server ---
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on port ${port}`);
-  console.log(`Try accessing: http://localhost:${port}/test`);
-});
+// --- START SERVER ---
+const startServer = async () => {
+  try {
+    await pool.query('SELECT 1');
+    console.log('DB connected successfully!');
+
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err);
+  }
+};
+
+startServer();
