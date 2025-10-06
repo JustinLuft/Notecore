@@ -1,51 +1,59 @@
-NOTECORE - A Themed Note Taking App
+📝 NOTECORE - Cyberpunk Note-Taking App 🚀
 
-Project Structure:
+─────────────────────────────
+Project Structure
+─────────────────────────────
 
 notecore/
-  backend/
-    db.js                  - PostgreSQL connection
-    server.js              - Express server
-    routes/
-      notes.js             - Notes routes
-      auth.js              - Auth routes
-    controllers/
-      notesController.js
-      authController.js
-  frontend/
-    src/
-      pages/
-        Dashboard.jsx
-        Login.jsx
-      components/
-      App.jsx
-    vite.config.js
-    package.json
-  .env
-  README.txt
+├─ backend/ 🖥️
+│  ├─ db.js                # PostgreSQL connection
+│  ├─ server.js            # Express server
+│  ├─ routes/
+│  │   ├─ notes.js         # Notes routes
+│  │   └─ auth.js          # Auth routes
+│  └─ controllers/
+│      ├─ notesController.js
+│      └─ authController.js
+├─ frontend/ 💻
+│  ├─ src/
+│  │   ├─ pages/
+│  │   │   ├─ Dashboard.jsx
+│  │   │   └─ Login.jsx
+│  │   ├─ components/
+│  │   └─ App.jsx
+│  ├─ vite.config.js
+│  └─ package.json
+├─ .env 🔐
+└─ README.txt 📄
 
-Tech Stack:
+─────────────────────────────
+Tech Stack ⚡
+─────────────────────────────
 
-- Frontend: React, Tailwind CSS, Lucide-React icons, jsPDF
-- Backend: Node.js, Express.js
-- Database: PostgreSQL
-- Middleware: CORS, JSON parsing, custom auth middleware
+- Frontend: React ⚛️, Tailwind CSS 🎨, Lucide-React icons 🖋️, jsPDF 📄
+- Backend: Node.js 🌐, Express.js 🚂
+- Database: PostgreSQL 🐘
+- Middleware: CORS, JSON parsing, custom auth middleware 🔑
 
-Features:
+─────────────────────────────
+Features ✨
+─────────────────────────────
 
-- User authentication (login/register)
-- Personal notes per user
-- Create, update, delete notes
-- Editable file names
-- Save status indicator (SYNCED / UNSAVED / UPLOADING...)
-- Export notes as PDF
-- Cyberpunk aesthetic UI
-- Persistent storage with PostgreSQL
-- Fully responsive
+- User authentication (login/register) 🔒
+- Personal notes per user 🗂️
+- Create, update, delete notes ✏️
+- Editable file names 📝
+- Save status indicator (SYNCED / UNSAVED / UPLOADING...) 💾
+- Export notes as PDF 📄
+- Cyberpunk aesthetic UI 🕹️
+- Persistent storage with PostgreSQL 🐘
+- Fully responsive 📱
 
-Setup Instructions:
+─────────────────────────────
+Setup Instructions 🛠️
+─────────────────────────────
 
-1. Backend:
+1️⃣ Backend:
 
   cd backend
   npm install
@@ -59,7 +67,7 @@ Setup Instructions:
 
   Backend runs on http://localhost:5000
 
-2. Frontend:
+2️⃣ Frontend:
 
   cd frontend
   npm install
@@ -72,7 +80,9 @@ Setup Instructions:
 
   Frontend runs on http://localhost:5173
 
-Database Schema:
+─────────────────────────────
+Database Schema 🗄️
+─────────────────────────────
 
 Users table:
   CREATE TABLE users (
@@ -92,28 +102,35 @@ Notes table:
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 
-Usage:
+─────────────────────────────
+Usage 🚀
+─────────────────────────────
 
 - Open frontend in browser (http://localhost:5173)
-- Register or login
-- Create, edit, delete notes
-- Export notes as PDF
-- Notes are private per user
+- Register or login 🔑
+- Create, edit, delete notes ✏️
+- Export notes as PDF 📄
+- Notes are private per user 🔒
 
-Notes Ownership & Security:
+─────────────────────────────
+Notes Ownership & Security 🛡️
+─────────────────────────────
 
 - Each note is linked to a user_id
 - Backend checks req.userId for all CRUD operations
 - Unauthorized access returns 401
 
-Future Improvements:
+─────────────────────────────
+Future Improvements 🔮
+─────────────────────────────
 
-- Password hashing & JWT authentication
-- Real-time collaborative editing
-- Dark/light theme toggle
-- Note search and tagging
-- File versioning
+- Password hashing & JWT authentication 🔐
+- Real-time collaborative editing 🤝
+- Dark/light theme toggle 🌗
+- Note search and tagging 🔍
+- File versioning 🗂️
 
-Author:
+─────────────────────────────
+Author 👨‍💻
 
-Justin - NoteCore
+Justin - Cyberpunk-inspired note-taking experience 🚀
