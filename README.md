@@ -1,4 +1,4 @@
-📝 NOTECORE - Cyberpunk Note-Taking App 🚀
+📝 NoteCore - Themed Note-Taking App 🚀
 
 ─────────────────────────────
 Project Structure
@@ -133,4 +133,4 @@ Future Improvements 🔮
 ─────────────────────────────
 Author 👨‍💻
 
-Justin - Cyberpunk-inspired note-taking experience 🚀
+Justin - Project Development 🚀
