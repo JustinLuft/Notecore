@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, Plus, Zap } from 'lucide-react';
 import jsPDF from 'jspdf';
 
-export default function CyberpunkNoteApp() {
+export default function Dashboard() {
   const [notes, setNotes] = useState([]);
   const [currentNote, setCurrentNote] = useState(null);
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
-  const [saveStatus, setSaveStatus] = useState('SYNCED'); // SYNCED / UNSAVED / UPLOADING / ERROR
-  const [dirty, setDirty] = useState(false); // tracks unsaved changes
+  const [saveStatus, setSaveStatus] = useState('SYNCED');
+  const [dirty, setDirty] = useState(false);
   const [glitchEffect, setGlitchEffect] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +33,7 @@ export default function CyberpunkNoteApp() {
     setLoading(true);
     try {
       const res = await fetch(API, {
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId }
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
       });
       if (!res.ok) throw new Error('Failed to fetch notes');
       const data = await res.json();
@@ -50,14 +50,14 @@ export default function CyberpunkNoteApp() {
     fetchNotes();
   }, []);
 
-  // Set current note content
+  // Load note
   useEffect(() => {
     if (currentNote) {
-      const note = notes.find(n => n.id === currentNote);
+      const note = notes.find((n) => n.id === currentNote);
       if (note) {
         setTitle(note.title);
         setContent(note.content);
-        setDirty(false); // loaded note is synced
+        setDirty(false);
         setSaveStatus('SYNCED');
       }
     } else {
@@ -68,7 +68,6 @@ export default function CyberpunkNoteApp() {
     }
   }, [currentNote, notes]);
 
-  // Mark dirty when user types
   const handleContentChange = (e) => {
     setContent(e.target.value);
     setDirty(true);
@@ -81,23 +80,21 @@ export default function CyberpunkNoteApp() {
     setSaveStatus('UNSAVED');
   };
 
-  // Create new note
   const createNewNote = async () => {
     try {
       const res = await fetch(API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-        body: JSON.stringify({ title: 'UNTITLED_FILE.txt', content: '' })
+        body: JSON.stringify({ title: 'UNTITLED_FILE.txt', content: '' }),
       });
       const newNote = await res.json();
-      setNotes(prev => [newNote, ...prev]);
+      setNotes((prev) => [newNote, ...prev]);
       setCurrentNote(newNote.id);
     } catch (err) {
       console.error('Failed to create note:', err);
     }
   };
 
-  // Manual save
   const saveNote = async () => {
     if (!currentNote) return;
     setSaveStatus('UPLOADING...');
@@ -105,11 +102,11 @@ export default function CyberpunkNoteApp() {
       const res = await fetch(`${API}/${currentNote}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-        body: JSON.stringify({ title, content })
+        body: JSON.stringify({ title, content }),
       });
       if (!res.ok) throw new Error('Failed to save note');
-      setNotes(prev =>
-        prev.map(note =>
+      setNotes((prev) =>
+        prev.map((note) =>
           note.id === currentNote ? { ...note, title, content } : note
         )
       );
@@ -121,23 +118,21 @@ export default function CyberpunkNoteApp() {
     }
   };
 
-  // Delete note
   const deleteNote = async (id) => {
     if (!window.confirm('Delete this note?')) return;
     try {
       const res = await fetch(`${API}/${id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId }
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
       });
       if (!res.ok) throw new Error('Failed to delete note');
-      setNotes(prev => prev.filter(note => note.id !== id));
+      setNotes((prev) => prev.filter((note) => note.id !== id));
       if (currentNote === id) setCurrentNote(null);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Download PDF
   const downloadPDF = () => {
     if (!currentNote) return;
     const doc = new jsPDF();
@@ -149,13 +144,13 @@ export default function CyberpunkNoteApp() {
     doc.save(`${title.replace(/\s+/g, '_')}.pdf`);
   };
 
-  // Logout
   const handleLogout = () => {
     localStorage.clear();
     navigate('/');
   };
 
-  if (loading) return <div className="text-cyan-400 p-10 font-mono">Loading notes...</div>;
+  if (loading)
+    return <div className="text-cyan-400 p-10 font-mono">Loading notes...</div>;
 
   return (
     <div className="flex h-screen bg-black overflow-hidden relative">
@@ -165,82 +160,104 @@ export default function CyberpunkNoteApp() {
           <div className="text-cyan-400 font-mono text-xs mb-3 flex items-center gap-2">
             <Zap size={14} className="animate-pulse" /> NEURAL INTERFACE v2.077
           </div>
-          <button onClick={createNewNote} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-cyan-500 text-black font-mono font-bold rounded hover:bg-cyan-400 transition-all">
+          <button
+            onClick={createNewNote}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-cyan-500 text-black font-mono font-bold rounded hover:bg-cyan-400 transition-all"
+          >
             <Plus size={20} /> NEW_FILE.exe
           </button>
         </div>
-
         <div className="flex-1 overflow-y-auto">
           <div className="p-2">
-            {Array.isArray(notes) && notes.map(note => (
-              <div key={note.id} className="flex items-center justify-between mb-1">
-                <button
-                  onClick={() => setCurrentNote(note.id)}
-                  className={`w-full text-left px-3 py-3 transition-all font-mono text-sm border-l-2 ${
-                    currentNote === note.id
-                      ? 'bg-cyan-950 border-cyan-400 text-cyan-300'
-                      : 'border-transparent text-gray-400 hover:bg-gray-900 hover:border-cyan-600 hover:text-cyan-500'
-                  }`}
-                >
-                  <div className="font-bold truncate flex items-center gap-2">
-                    <FileText size={14} />
-                    {note.title}
-                  </div>
-                  <div className="text-xs opacity-70 truncate mt-1">{note.content.substring(0, 40) || '>>> EMPTY FILE'}</div>
-                </button>
-                <button onClick={() => deleteNote(note.id)} className="text-red-500 px-2 font-bold">X</button>
-              </div>
-            ))}
+            {Array.isArray(notes) &&
+              notes.map((note) => (
+                <div key={note.id} className="flex items-center justify-between mb-1">
+                  <button
+                    onClick={() => setCurrentNote(note.id)}
+                    className={`w-full text-left px-3 py-3 transition-all font-mono text-sm border-l-2 ${
+                      currentNote === note.id
+                        ? 'bg-cyan-950 border-cyan-400 text-cyan-300'
+                        : 'border-transparent text-gray-400 hover:bg-gray-900 hover:border-cyan-600 hover:text-cyan-500'
+                    }`}
+                  >
+                    <div className="font-bold truncate flex items-center gap-2">
+                      <FileText size={14} />
+                      {note.title}
+                    </div>
+                    <div className="text-xs opacity-70 truncate mt-1">
+                      {note.content.substring(0, 40) || '>>> EMPTY FILE'}
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => deleteNote(note.id)}
+                    className="text-red-500 px-2 font-bold"
+                  >
+                    X
+                  </button>
+                </div>
+              ))}
           </div>
         </div>
       </div>
 
       {/* Main Editor */}
       <div className="flex-1 flex flex-col relative z-10">
-        {/* Top Header Bar - Always Visible */}
-<div className="bg-black border-b-2 border-cyan-500 px-6 py-4 flex items-center justify-between z-20">
-  {/* Left / File Name */}
-  <div className="flex-1">
-    {currentNote ? (
-      <input
-        type="text"
-        value={title}
-        onChange={handleTitleChange}
-        className={`text-xl font-bold font-mono bg-transparent text-cyan-400 outline-none border-none ${glitchEffect ? 'glitch' : ''}`}
-        placeholder="FILENAME.txt"
-      />
-    ) : null}
-  </div>
+        {/* Top Header */}
+        <div className="bg-black border-b-2 border-cyan-500 px-6 py-4 flex items-center justify-between z-20">
+          <div className="flex-1">
+            {currentNote && (
+              <input
+                type="text"
+                value={title}
+                onChange={handleTitleChange}
+                className={`text-xl font-bold font-mono bg-transparent text-cyan-400 outline-none border-none ${
+                  glitchEffect ? 'glitch' : ''
+                }`}
+                placeholder="FILENAME.txt"
+              />
+            )}
+          </div>
 
-    {/* Right / Save Status + Buttons + Username */}
-    <div className="flex items-center gap-4">
-      <span className={`text-xs font-mono px-2 py-1 rounded ${
-        saveStatus === 'SYNCED'
-          ? 'bg-green-950 text-green-400'
-          : saveStatus === 'UNSAVED'
-            ? 'bg-red-950 text-red-400 animate-pulse'
-            : saveStatus === 'UPLOADING...'
-              ? 'bg-yellow-950 text-yellow-400 animate-pulse'
-              : 'bg-gray-950 text-gray-400'
-      }`}>{saveStatus}</span>
+          <div className="flex items-center gap-4">
+            <span
+              className={`text-xs font-mono px-2 py-1 rounded ${
+                saveStatus === 'SYNCED'
+                  ? 'bg-green-950 text-green-400'
+                  : saveStatus === 'UNSAVED'
+                  ? 'bg-red-950 text-red-400 animate-pulse'
+                  : saveStatus === 'UPLOADING...'
+                  ? 'bg-yellow-950 text-yellow-400 animate-pulse'
+                  : 'bg-gray-950 text-gray-400'
+              }`}
+            >
+              {saveStatus}
+            </span>
 
-      <span className="text-cyan-400 font-mono text-sm">{username}</span>
+            <span className="text-cyan-400 font-mono text-sm">{username}</span>
 
-      <button
-        onClick={saveNote}
-        className="px-2 py-1 bg-cyan-500 text-black font-mono font-bold rounded hover:bg-cyan-400 transition-all text-xs"
-      >
-        SAVE
-      </button>
+            <button
+              onClick={saveNote}
+              className="px-2 py-1 bg-cyan-500 text-black font-mono font-bold rounded hover:bg-cyan-400 transition-all text-xs"
+            >
+              SAVE
+            </button>
 
-      <button
-        onClick={handleLogout}
-        className="px-2 py-1 bg-red-500 text-black font-mono font-bold rounded hover:bg-red-400 transition-all text-xs"
-      >
-        LOGOUT
-      </button>
-    </div>
-  </div>
+            <button
+              onClick={downloadPDF}
+              className="px-2 py-1 bg-purple-500 text-black font-mono font-bold rounded hover:bg-purple-400 transition-all text-xs"
+            >
+              DOWNLOAD PDF
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="px-2 py-1 bg-red-500 text-black font-mono font-bold rounded hover:bg-red-400 transition-all text-xs"
+            >
+              LOGOUT
+            </button>
+          </div>
+        </div>
+
         {/* Editor */}
         <div className="flex-1 p-6 overflow-y-auto bg-black">
           {currentNote ? (
@@ -248,14 +265,19 @@ export default function CyberpunkNoteApp() {
               value={content}
               onChange={handleContentChange}
               className="w-full h-full min-h-96 resize-none outline-none bg-transparent text-green-400 font-mono text-sm leading-relaxed"
-              style={{ textShadow: '0 0 5px rgba(0, 255, 0, 0.5)', caretColor: '#00ff00' }}
+              style={{
+                textShadow: '0 0 5px rgba(0, 255, 0, 0.5)',
+                caretColor: '#00ff00',
+              }}
               placeholder=">>> START_TYPING..."
             />
           ) : (
             <div className="flex flex-col items-center justify-start pt-6 text-center text-cyan-400 font-mono">
               <FileText size={80} className="mx-auto mb-6 opacity-30" />
               <p className="text-xl neon-text">NO FILE SELECTED</p>
-              <p className="text-sm text-gray-600">Initialize a new session or access existing files</p>
+              <p className="text-sm text-gray-600">
+                Initialize a new session or access existing files
+              </p>
             </div>
           )}
         </div>
