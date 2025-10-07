@@ -47,7 +47,6 @@ Features ✨
 - Editable file names 📝
 - Save status indicator (SYNCED / UNSAVED / UPLOADING...) 💾
 - Export notes as PDF 📄
-- Cyberpunk aesthetic UI 🕹️
 - Persistent storage with PostgreSQL 🐘
 - Fully responsive 📱
 
