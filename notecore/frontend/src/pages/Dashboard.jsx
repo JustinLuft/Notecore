@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [dirty, setDirty] = useState(false);
   const [glitchEffect, setGlitchEffect] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState(null); // 🔥 in-theme confirmation
 
   const navigate = useNavigate();
   const username = localStorage.getItem('username') || 'GUEST';
@@ -118,18 +119,25 @@ export default function Dashboard() {
     }
   };
 
-  const deleteNote = async (id) => {
-    if (!window.confirm('Delete this note?')) return;
+  // 🔥 New confirmation flow
+  const requestDeleteNote = (id) => {
+    setConfirmDelete(id);
+  };
+
+  const confirmDeleteNote = async () => {
+    if (!confirmDelete) return;
     try {
-      const res = await fetch(`${API}/${id}`, {
+      const res = await fetch(`${API}/${confirmDelete}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
       });
       if (!res.ok) throw new Error('Failed to delete note');
-      setNotes((prev) => prev.filter((note) => note.id !== id));
-      if (currentNote === id) setCurrentNote(null);
+      setNotes((prev) => prev.filter((note) => note.id !== confirmDelete));
+      if (currentNote === confirmDelete) setCurrentNote(null);
     } catch (err) {
       console.error(err);
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -189,8 +197,8 @@ export default function Dashboard() {
                     </div>
                   </button>
                   <button
-                    onClick={() => deleteNote(note.id)}
-                    className="text-red-500 px-2 font-bold"
+                    onClick={() => requestDeleteNote(note.id)}
+                    className="text-red-500 px-2 font-bold hover:text-red-400 transition-all"
                   >
                     X
                   </button>
@@ -282,6 +290,31 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* 🔥 Themed Delete Confirmation Overlay */}
+      {confirmDelete && (
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="border-2 border-cyan-500 bg-black p-6 rounded-2xl shadow-[0_0_20px_#00ffff55] font-mono text-center w-80 animate-pulse-slow">
+            <p className="text-cyan-400 mb-4 text-sm">
+              CONFIRM DELETION OF FILE?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={confirmDeleteNote}
+                className="px-4 py-2 bg-red-500 text-black font-bold rounded hover:bg-red-400 transition-all"
+              >
+                DELETE
+              </button>
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="px-4 py-2 bg-gray-700 text-cyan-300 font-bold rounded hover:bg-gray-600 transition-all"
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
