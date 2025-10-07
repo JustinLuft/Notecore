@@ -1,16 +1,20 @@
+// Load environment variables
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
 const notesRouter = require('./routes/notes');
 
 const app = express();
+
+// Render will assign a dynamic PORT
 const PORT = process.env.PORT || 5000;
 
 // --- CORS ---
-// Allow frontend origin and handle credentials
+// Change this to your *deployed frontend URL* later
 app.use(cors({
-  origin: 'https://redesigned-xylophone-qjw5vqvq47h4vgr-5173.app.github.dev', 
+  origin: process.env.FRONTEND_URL || '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-user-id'],
   credentials: true
@@ -35,7 +39,8 @@ app.post('/auth/login', async (req, res) => {
     const result = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
     const user = result.rows[0];
 
-    if (!user || user.password !== password) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user || user.password !== password)
+      return res.status(401).json({ error: 'Invalid credentials' });
 
     res.json({ userId: user.id, username: user.username });
   } catch (err) {
@@ -46,7 +51,8 @@ app.post('/auth/login', async (req, res) => {
 
 app.post('/auth/register', async (req, res) => {
   const { username, email, password } = req.body;
-  if (!username || !email || !password) return res.status(400).json({ error: 'All fields are required' });
+  if (!username || !email || !password)
+    return res.status(400).json({ error: 'All fields are required' });
 
   try {
     const result = await pool.query(
@@ -63,17 +69,22 @@ app.post('/auth/register', async (req, res) => {
 // --- NOTES ROUTES ---
 app.use('/notes', notesRouter);
 
+// --- HEALTH CHECK (important for Render) ---
+app.get('/', (req, res) => {
+  res.send('✅ Notecore backend is running.');
+});
+
 // --- START SERVER ---
 const startServer = async () => {
   try {
     await pool.query('SELECT 1');
-    console.log('DB connected successfully!');
+    console.log('✅ DB connected successfully!');
 
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
     });
   } catch (err) {
-    console.error('Failed to start server:', err);
+    console.error('❌ Failed to start server:', err);
   }
 };
 
