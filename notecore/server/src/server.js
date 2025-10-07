@@ -13,20 +13,24 @@ const PORT = process.env.PORT || 5000;
 console.log('FRONTEND_URL =', process.env.FRONTEND_URL);
 
 // --- CORS ---
-// Change this to your *deployed frontend URL* later
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests from your frontend or if origin is undefined (like Postman)
+    if (!origin || origin === process.env.FRONTEND_URL) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-user-id'],
   credentials: true
-}));
+};
 
-app.options('*', cors({
-  origin: process.env.FRONTEND_URL,
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','x-user-id'],
-  credentials: true
-}));
+// Preflight requests
+app.options('*', cors(corsOptions));
+// Use CORS for all routes
+app.use(cors(corsOptions));
 
 // Parse JSON bodies
 app.use(express.json());
