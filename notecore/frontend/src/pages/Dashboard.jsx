@@ -6,19 +6,35 @@ import jsPDF from 'jspdf';
 export default function Dashboard() {
   const [notes, setNotes] = useState([]);
   const [currentNote, setCurrentNote] = useState(null);
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState(''); // HTML string
   const [title, setTitle] = useState('');
   const [saveStatus, setSaveStatus] = useState('SYNCED');
   const [dirty, setDirty] = useState(false);
   const [glitchEffect, setGlitchEffect] = useState(false);
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const editorRef = useRef(null);
 
+  const editorRef = useRef(null);
   const navigate = useNavigate();
   const username = localStorage.getItem('username') || 'GUEST';
   const userId = localStorage.getItem('userId');
   const API = `${import.meta.env.VITE_API_URL}/notes`;
+
+  // small utility to place caret at the end of contentEditable
+  const placeCaretAtEnd = (el) => {
+    if (!el) return;
+    el.focus();
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch (err) {
+      // ignore old browser issues
+    }
+  };
 
   // Glitch effect
   useEffect(() => {
@@ -52,22 +68,30 @@ export default function Dashboard() {
     fetchNotes();
   }, []);
 
-  // Load note when selected
+  // When user selects a note, load it into state and into the DOM once
   useEffect(() => {
     if (currentNote) {
       const note = notes.find((n) => n.id === currentNote);
       if (note) {
-        setTitle(note.title);
-        setContent(note.content);
+        setTitle(note.title || '');
+        setContent(note.content || '');
+        // place content into the editor DOM directly (only when loading a note)
+        if (editorRef.current) {
+          editorRef.current.innerHTML = note.content || '';
+          // put caret at end so user can continue typing
+          placeCaretAtEnd(editorRef.current);
+        }
         setDirty(false);
         setSaveStatus('SYNCED');
       }
     } else {
       setTitle('');
       setContent('');
+      if (editorRef.current) editorRef.current.innerHTML = '';
       setDirty(false);
       setSaveStatus('SYNCED');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentNote, notes]);
 
   const handleTitleChange = (e) => {
@@ -95,15 +119,19 @@ export default function Dashboard() {
     if (!currentNote) return;
     setSaveStatus('UPLOADING...');
     try {
+      // ensure content state matches DOM (in case of edge cases)
+      if (editorRef.current) {
+        setContent(editorRef.current.innerHTML);
+      }
       const res = await fetch(`${API}/${currentNote}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-        body: JSON.stringify({ title, content }),
+        body: JSON.stringify({ title, content: editorRef.current?.innerHTML ?? content }),
       });
       if (!res.ok) throw new Error('Failed to save note');
       setNotes((prev) =>
         prev.map((note) =>
-          note.id === currentNote ? { ...note, title, content } : note
+          note.id === currentNote ? { ...note, title, content: editorRef.current?.innerHTML ?? content } : note
         )
       );
       setSaveStatus('SYNCED');
@@ -114,8 +142,8 @@ export default function Dashboard() {
     }
   };
 
-  // Delete flow
   const requestDeleteNote = (id) => setConfirmDelete(id);
+
   const confirmDeleteNote = async () => {
     if (!confirmDelete) return;
     try {
@@ -133,13 +161,25 @@ export default function Dashboard() {
     }
   };
 
+  // exec command helper (focus editor first so selection is used)
+  const execCmd = (cmd, val = null) => {
+    if (editorRef.current) editorRef.current.focus();
+    document.execCommand(cmd, false, val);
+    // reflect DOM into our state
+    if (editorRef.current) setContent(editorRef.current.innerHTML);
+    setDirty(true);
+    setSaveStatus('UNSAVED');
+  };
+
   const downloadPDF = () => {
     if (!currentNote) return;
     const doc = new jsPDF();
     doc.setFont('courier', 'normal');
     doc.setFontSize(14);
     doc.text(title, 10, 20);
-    const splitText = doc.splitTextToSize(content, 180);
+    // use innerText so we don't export HTML tags
+    const textContent = editorRef.current?.innerText ?? '';
+    const splitText = doc.splitTextToSize(textContent, 180);
     doc.text(splitText, 10, 30);
     doc.save(`${title.replace(/\s+/g, '_')}.pdf`);
   };
@@ -151,13 +191,6 @@ export default function Dashboard() {
 
   if (loading)
     return <div className="text-cyan-400 p-10 font-mono">Loading notes...</div>;
-
-  // Apply toolbar formatting commands
-  const execCmd = (cmd, val = null) => {
-    document.execCommand(cmd, false, val);
-    setDirty(true);
-    setSaveStatus('UNSAVED');
-  };
 
   return (
     <div className="flex h-screen bg-black overflow-hidden relative">
@@ -174,6 +207,7 @@ export default function Dashboard() {
             <Plus size={20} /> NEW_FILE.exe
           </button>
         </div>
+
         <div className="flex-1 overflow-y-auto">
           <div className="p-2">
             {notes.map((note) => (
@@ -191,10 +225,11 @@ export default function Dashboard() {
                     {note.title}
                   </div>
                   <div className="text-xs opacity-70 truncate mt-1">
-                    {note.content.replace(/<[^>]+>/g, '').substring(0, 40) ||
+                    {(note.content || '').replace(/<[^>]+>/g, '').substring(0, 40) ||
                       '>>> EMPTY FILE'}
                   </div>
                 </button>
+
                 <button
                   onClick={() => requestDeleteNote(note.id)}
                   className="text-red-500 px-2 font-bold hover:text-red-400 transition-all"
@@ -209,7 +244,7 @@ export default function Dashboard() {
 
       {/* Main Editor */}
       <div className="flex-1 flex flex-col relative z-10">
-        {/* Top Header */}
+        {/* Header */}
         <div className="bg-black border-b-2 border-cyan-500 px-6 py-4 flex items-center justify-between z-20">
           <div className="flex-1">
             {currentNote && (
@@ -265,11 +300,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Editor */}
+        {/* Editor area */}
         <div className="flex-1 p-6 overflow-y-auto bg-black flex flex-col">
           {currentNote ? (
             <>
-              {/* 🧰 Toolbar */}
+              {/* Toolbar */}
               <div className="flex gap-2 mb-4 border-b border-cyan-700 pb-3">
                 <button
                   onClick={() => execCmd('bold')}
@@ -283,6 +318,7 @@ export default function Dashboard() {
                 >
                   ITALIC
                 </button>
+
                 <select
                   onChange={(e) => execCmd('foreColor', e.target.value)}
                   className="bg-black border border-cyan-600 text-cyan-400 text-xs font-mono rounded px-2"
@@ -293,6 +329,7 @@ export default function Dashboard() {
                   <option value="#ff0000">Red</option>
                   <option value="#ffffff">White</option>
                 </select>
+
                 <select
                   onChange={(e) => execCmd('fontSize', e.target.value)}
                   className="bg-black border border-cyan-600 text-cyan-400 text-xs font-mono rounded px-2"
@@ -305,23 +342,25 @@ export default function Dashboard() {
                 </select>
               </div>
 
-              {/* 🧾 Editable content area (fixed typing glitch) */}
+              {/* Editable area (DOM updated only when loading a note) */}
               <div
                 ref={editorRef}
                 contentEditable
                 suppressContentEditableWarning
                 onInput={(e) => {
+                  // Reflect DOM into state, but do NOT re-write DOM from state.
                   setContent(e.currentTarget.innerHTML);
                   setDirty(true);
                   setSaveStatus('UNSAVED');
                 }}
-                onBlur={() => saveNote()}
-                className="flex-1 min-h-96 outline-none bg-transparent text-green-400 font-mono text-sm leading-relaxed overflow-y-auto p-2 border border-cyan-800 rounded"
-                style={{
-                  textShadow: '0 0 5px rgba(0, 255, 0, 0.5)',
-                  caretColor: '#00ff00',
+                onBlur={() => {
+                  // update content to match DOM and optionally save
+                  setContent(editorRef.current?.innerHTML ?? '');
                 }}
-                dangerouslySetInnerHTML={{ __html: content }}
+                dir="ltr"
+                style={{ unicodeBidi: 'plaintext', textShadow: '0 0 5px rgba(0,255,0,0.5)', caretColor: '#00ff00' }}
+                className="flex-1 min-h-96 outline-none bg-transparent text-green-400 font-mono text-sm leading-relaxed overflow-y-auto p-2 border border-cyan-800 rounded"
+                spellCheck={true}
               />
             </>
           ) : (
@@ -335,13 +374,11 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* 🔥 Delete Confirmation Overlay */}
+        {/* Delete Confirmation Overlay */}
         {confirmDelete && (
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="border-2 border-cyan-500 bg-black p-6 rounded-2xl shadow-[0_0_20px_#00ffff55] font-mono text-center w-80">
-              <p className="text-cyan-400 mb-4 text-sm">
-                CONFIRM DELETION OF FILE?
-              </p>
+              <p className="text-cyan-400 mb-4 text-sm">CONFIRM DELETION OF FILE?</p>
               <div className="flex justify-center gap-4">
                 <button
                   onClick={confirmDeleteNote}
