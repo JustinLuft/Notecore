@@ -267,29 +267,77 @@ export default function Dashboard() {
         </div>
 
         {/* Editor */}
-        <div className="flex-1 p-6 overflow-y-auto bg-black">
-          {currentNote ? (
-            <textarea
-              value={content}
-              onChange={handleContentChange}
-              className="w-full h-full min-h-96 resize-none outline-none bg-transparent text-green-400 font-mono text-sm leading-relaxed"
-              style={{
-                textShadow: '0 0 5px rgba(0, 255, 0, 0.5)',
-                caretColor: '#00ff00',
-              }}
-              placeholder=">>> START_TYPING..."
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-start pt-6 text-center text-cyan-400 font-mono">
-              <FileText size={80} className="mx-auto mb-6 opacity-30" />
-              <p className="text-xl neon-text">NO FILE SELECTED</p>
-              <p className="text-sm text-gray-600">
-                Initialize a new session or access existing files
-              </p>
-            </div>
-          )}
-        </div>
+<div className="flex-1 p-6 overflow-y-auto bg-black flex flex-col">
+  {currentNote ? (
+    <>
+      {/* 🧰 Toolbar */}
+      <div className="flex gap-2 mb-4 border-b border-cyan-700 pb-3">
+        <button
+          onClick={() => document.execCommand('bold')}
+          className="px-3 py-1 bg-cyan-500 text-black font-mono font-bold rounded hover:bg-cyan-400 transition-all text-xs"
+        >
+          BOLD
+        </button>
+        <button
+          onClick={() => document.execCommand('italic')}
+          className="px-3 py-1 bg-cyan-500 text-black font-mono italic rounded hover:bg-cyan-400 transition-all text-xs"
+        >
+          ITALIC
+        </button>
+        <select
+          onChange={(e) =>
+            document.execCommand('foreColor', false, e.target.value)
+          }
+          className="bg-black border border-cyan-600 text-cyan-400 text-xs font-mono rounded px-2"
+        >
+          <option value="#00ff00">Green</option>
+          <option value="#00ffff">Cyan</option>
+          <option value="#ff00ff">Magenta</option>
+          <option value="#ff0000">Red</option>
+          <option value="#ffffff">White</option>
+        </select>
+        <select
+          onChange={(e) =>
+            document.execCommand('fontSize', false, e.target.value)
+          }
+          className="bg-black border border-cyan-600 text-cyan-400 text-xs font-mono rounded px-2"
+        >
+          <option value="2">Small</option>
+          <option value="3">Normal</option>
+          <option value="4">Large</option>
+          <option value="5">XL</option>
+          <option value="6">XXL</option>
+        </select>
       </div>
+
+      {/* 🧾 Editable content area */}
+      <div
+        contentEditable
+        suppressContentEditableWarning
+        onInput={(e) => {
+          setContent(e.currentTarget.innerHTML);
+          setDirty(true);
+          setSaveStatus('UNSAVED');
+        }}
+        dangerouslySetInnerHTML={{ __html: content }}
+        className="flex-1 min-h-96 outline-none bg-transparent text-green-400 font-mono text-sm leading-relaxed overflow-y-auto p-2 border border-cyan-800 rounded"
+        style={{
+          textShadow: '0 0 5px rgba(0, 255, 0, 0.5)',
+          caretColor: '#00ff00',
+        }}
+      />
+    </>
+  ) : (
+    <div className="flex flex-col items-center justify-start pt-6 text-center text-cyan-400 font-mono">
+      <FileText size={80} className="mx-auto mb-6 opacity-30" />
+      <p className="text-xl neon-text">NO FILE SELECTED</p>
+      <p className="text-sm text-gray-600">
+        Initialize a new session or access existing files
+      </p>
+    </div>
+  )}
+</div>
+
 
       {/* 🔥 Themed Delete Confirmation Overlay */}
       {confirmDelete && (
