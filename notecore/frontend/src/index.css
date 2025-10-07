@@ -10,31 +10,45 @@ html, body {
   color: cyan;
 }
 
-/* === Global Custom Cursor === */
-
-/* Hide the default cursor */
-body {
-  cursor: none;
-}
-
 /* Define CSS variables for cursor URLs */
 :root {
-  --cursor-normal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 30 30' fill='rgba(0, 255, 209, 0.7)'%3E%3Cpath d='M15 0 L0 30 L30 30 Z' /%3E%3C/svg%3E") 8 8, auto;
-  --cursor-hover: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 30 30' fill='rgba(0, 255, 209, 0.7)'%3E%3Cpath d='M15 0 L0 30 L30 30 Z' /%3E%3C/svg%3E") 8 8, auto;
+  /* Blue triangle cursor for normal pointer */
+  --cursor-normal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 30 30' fill='rgba(0, 200, 255, 0.8)'%3E%3Cpath d='M15 0 L0 30 L30 30 Z' /%3E%3C/svg%3E") 8 8, auto;
+
+  /* Blue triangle cursor for hover over buttons/links */
+  --cursor-hover: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 30 30' fill='rgba(0, 200, 255, 1)'%3E%3Cpath d='M15 0 L0 30 L30 30 Z' /%3E%3C/svg%3E") 8 8, auto;
+
+  /* Thin I-beam for text editing */
+  --cursor-text: text;
 }
 
-/* Apply normal cursor everywhere */
+/* Default cursor everywhere */
 * {
   cursor: var(--cursor-normal) !important;
 }
 
-/* Change cursor on hover for interactive elements */
+/* Hover for interactive elements */
 a:hover,
 button:hover,
 input:hover,
 textarea:hover,
 select:hover {
   cursor: var(--cursor-hover) !important;
+}
+
+/* Text editing area */
+[contenteditable],
+input[type="text"],
+textarea {
+  cursor: var(--cursor-text) !important;
+  caret-color: #00c8ff; /* bright blue caret */
+}
+
+/* Optional: slightly thinner caret for cyberpunk vibe */
+[contenteditable]::selection,
+textarea::selection,
+input[type="text"]::selection {
+  background-color: rgba(0, 200, 255, 0.3);
 }
 
 /* Fallback for touch devices */
