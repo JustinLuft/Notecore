@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const pool = require('./db'); // your PostgreSQL pool
+const pool = require('./db');
 const notesRouter = require('./routes/notes');
 
 const app = express();
@@ -11,26 +11,16 @@ const app = express();
 // Render will assign a dynamic PORT
 const PORT = process.env.PORT || 5000;
 
-// Frontend URL from environment
-const FRONTEND_URL = process.env.FRONTEND_URL;
-console.log('FRONTEND_URL =', FRONTEND_URL);
-
-// --- CORS SETUP ---
-// Allow your frontend to access the backend, including preflight requests
-const corsOptions = {
-  origin: FRONTEND_URL,
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','x-user-id'],
+// --- CORS ---
+// Allow your frontend to access backend
+app.use(cors({
+  origin: process.env.FRONTEND_URL, // your deployed frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-user-id'],
   credentials: true
-};
+}));
 
-// Apply CORS to all requests
-app.use(cors(corsOptions));
-
-// Explicitly handle preflight OPTIONS requests
-app.options(cors(corsOptions));
-
-// --- PARSE JSON ---
+// Parse JSON bodies
 app.use(express.json());
 
 // --- Attach userId from header ---
@@ -43,8 +33,7 @@ app.use((req, res, next) => {
 // --- AUTH ROUTES ---
 app.post('/auth/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password)
-    return res.status(400).json({ error: 'Email and password required' });
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
   try {
     const result = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
@@ -88,11 +77,12 @@ app.get('/', (req, res) => {
 // --- START SERVER ---
 const startServer = async () => {
   try {
-    await pool.query('SELECT 1'); // test DB connection
+    await pool.query('SELECT 1');
     console.log('✅ DB connected successfully!');
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`Frontend URL allowed: ${process.env.FRONTEND_URL}`);
     });
   } catch (err) {
     console.error('❌ Failed to start server:', err);
