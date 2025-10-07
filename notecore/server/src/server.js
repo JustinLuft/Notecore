@@ -8,17 +8,18 @@ const notesRouter = require('./routes/notes');
 
 const app = express();
 
-// Render will assign a dynamic PORT
+// Render assigns a dynamic PORT
 const PORT = process.env.PORT || 5000;
 
 // --- CORS ---
-// Change this to your *deployed frontend URL* later
-app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+// Only allow your deployed frontend to avoid browser CORS errors
+const corsOptions = {
+  origin: process.env.FRONTEND_URL, // e.g., https://notecore.vercel.app
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-user-id'],
   credentials: true
-}));
+};
+app.use(cors(corsOptions));
 
 // Parse JSON bodies
 app.use(express.json());
@@ -33,7 +34,8 @@ app.use((req, res, next) => {
 // --- AUTH ROUTES ---
 app.post('/auth/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+  if (!email || !password)
+    return res.status(400).json({ error: 'Email and password required' });
 
   try {
     const result = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
@@ -77,7 +79,7 @@ app.get('/', (req, res) => {
 // --- START SERVER ---
 const startServer = async () => {
   try {
-    await pool.query('SELECT 1');
+    await pool.query('SELECT 1'); // test DB connection
     console.log('✅ DB connected successfully!');
 
     app.listen(PORT, '0.0.0.0', () => {
