@@ -13,6 +13,8 @@ export default function Dashboard() {
   const [glitchEffect, setGlitchEffect] = useState(false);
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [isBoldActive, setIsBoldActive] = useState(false);
+  const [isItalicActive, setIsItalicActive] = useState(false);
 
   const editorRef = useRef(null);
   const navigate = useNavigate();
@@ -20,7 +22,6 @@ export default function Dashboard() {
   const userId = localStorage.getItem('userId');
   const API = `${import.meta.env.VITE_API_URL}/notes`;
 
-  // small utility to place caret at the end of contentEditable
   const placeCaretAtEnd = (el) => {
     if (!el) return;
     el.focus();
@@ -31,12 +32,9 @@ export default function Dashboard() {
       const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-    } catch (err) {
-      // ignore old browser issues
-    }
+    } catch (err) {}
   };
 
-  // Glitch effect
   useEffect(() => {
     const glitchInterval = setInterval(() => {
       setGlitchEffect(true);
@@ -45,7 +43,6 @@ export default function Dashboard() {
     return () => clearInterval(glitchInterval);
   }, []);
 
-  // Fetch notes
   const fetchNotes = async () => {
     if (!userId) return navigate('/');
     setLoading(true);
@@ -68,17 +65,14 @@ export default function Dashboard() {
     fetchNotes();
   }, []);
 
-  // When user selects a note, load it into state and into the DOM once
   useEffect(() => {
     if (currentNote) {
       const note = notes.find((n) => n.id === currentNote);
       if (note) {
         setTitle(note.title || '');
         setContent(note.content || '');
-        // place content into the editor DOM directly (only when loading a note)
         if (editorRef.current) {
           editorRef.current.innerHTML = note.content || '';
-          // put caret at end so user can continue typing
           placeCaretAtEnd(editorRef.current);
         }
         setDirty(false);
@@ -91,7 +85,6 @@ export default function Dashboard() {
       setDirty(false);
       setSaveStatus('SYNCED');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentNote, notes]);
 
   const handleTitleChange = (e) => {
@@ -119,19 +112,21 @@ export default function Dashboard() {
     if (!currentNote) return;
     setSaveStatus('UPLOADING...');
     try {
-      // ensure content state matches DOM (in case of edge cases)
-      if (editorRef.current) {
-        setContent(editorRef.current.innerHTML);
-      }
+      if (editorRef.current) setContent(editorRef.current.innerHTML);
       const res = await fetch(`${API}/${currentNote}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-        body: JSON.stringify({ title, content: editorRef.current?.innerHTML ?? content }),
+        body: JSON.stringify({
+          title,
+          content: editorRef.current?.innerHTML ?? content,
+        }),
       });
       if (!res.ok) throw new Error('Failed to save note');
       setNotes((prev) =>
         prev.map((note) =>
-          note.id === currentNote ? { ...note, title, content: editorRef.current?.innerHTML ?? content } : note
+          note.id === currentNote
+            ? { ...note, title, content: editorRef.current?.innerHTML ?? content }
+            : note
         )
       );
       setSaveStatus('SYNCED');
@@ -161,15 +156,24 @@ export default function Dashboard() {
     }
   };
 
-  // exec command helper (focus editor first so selection is used)
   const execCmd = (cmd, val = null) => {
     if (editorRef.current) editorRef.current.focus();
     document.execCommand(cmd, false, val);
-    // reflect DOM into our state
     if (editorRef.current) setContent(editorRef.current.innerHTML);
     setDirty(true);
     setSaveStatus('UNSAVED');
+    setIsBoldActive(document.queryCommandState('bold'));
+    setIsItalicActive(document.queryCommandState('italic'));
   };
+
+  useEffect(() => {
+    const updateActiveStyles = () => {
+      setIsBoldActive(document.queryCommandState('bold'));
+      setIsItalicActive(document.queryCommandState('italic'));
+    };
+    document.addEventListener('selectionchange', updateActiveStyles);
+    return () => document.removeEventListener('selectionchange', updateActiveStyles);
+  }, []);
 
   const downloadPDF = () => {
     if (!currentNote) return;
@@ -177,7 +181,6 @@ export default function Dashboard() {
     doc.setFont('courier', 'normal');
     doc.setFontSize(14);
     doc.text(title, 10, 20);
-    // use innerText so we don't export HTML tags
     const textContent = editorRef.current?.innerText ?? '';
     const splitText = doc.splitTextToSize(textContent, 180);
     doc.text(splitText, 10, 30);
@@ -308,13 +311,21 @@ export default function Dashboard() {
               <div className="flex gap-2 mb-4 border-b border-cyan-700 pb-3">
                 <button
                   onClick={() => execCmd('bold')}
-                  className="px-3 py-1 bg-cyan-500 text-black font-mono font-bold rounded hover:bg-cyan-400 text-xs"
+                  className={`px-3 py-1 font-mono font-bold rounded text-xs transition-all ${
+                    isBoldActive
+                      ? 'bg-green-500 text-black shadow-[0_0_10px_#00ff00]'
+                      : 'bg-cyan-500 text-black hover:bg-cyan-400'
+                  }`}
                 >
                   BOLD
                 </button>
                 <button
                   onClick={() => execCmd('italic')}
-                  className="px-3 py-1 bg-cyan-500 text-black font-mono italic rounded hover:bg-cyan-400 text-xs"
+                  className={`px-3 py-1 font-mono italic rounded text-xs transition-all ${
+                    isItalicActive
+                      ? 'bg-green-500 text-black shadow-[0_0_10px_#00ff00]'
+                      : 'bg-cyan-500 text-black hover:bg-cyan-400'
+                  }`}
                 >
                   ITALIC
                 </button>
@@ -342,23 +353,23 @@ export default function Dashboard() {
                 </select>
               </div>
 
-              {/* Editable area (DOM updated only when loading a note) */}
+              {/* Editable area */}
               <div
                 ref={editorRef}
                 contentEditable
                 suppressContentEditableWarning
                 onInput={(e) => {
-                  // Reflect DOM into state, but do NOT re-write DOM from state.
                   setContent(e.currentTarget.innerHTML);
                   setDirty(true);
                   setSaveStatus('UNSAVED');
                 }}
-                onBlur={() => {
-                  // update content to match DOM and optionally save
-                  setContent(editorRef.current?.innerHTML ?? '');
-                }}
+                onBlur={() => setContent(editorRef.current?.innerHTML ?? '')}
                 dir="ltr"
-                style={{ unicodeBidi: 'plaintext', textShadow: '0 0 5px rgba(0,255,0,0.5)', caretColor: '#00ff00' }}
+                style={{
+                  unicodeBidi: 'plaintext',
+                  textShadow: '0 0 5px rgba(0,255,0,0.5)',
+                  caretColor: '#00ff00',
+                }}
                 className="flex-1 min-h-96 outline-none bg-transparent text-green-400 font-mono text-sm leading-relaxed overflow-y-auto p-2 border border-cyan-800 rounded"
                 spellCheck={true}
               />
