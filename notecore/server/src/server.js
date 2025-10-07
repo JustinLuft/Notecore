@@ -27,9 +27,6 @@ const corsOptions = {
   credentials: true
 };
 
-// Preflight requests
-app.options('*', cors(corsOptions));
-// Use CORS for all routes
 app.use(cors(corsOptions));
 
 // Parse JSON bodies
