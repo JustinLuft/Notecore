@@ -10,6 +10,7 @@ const app = express();
 
 // Render will assign a dynamic PORT
 const PORT = process.env.PORT || 5000;
+console.log('FRONTEND_URL =', process.env.FRONTEND_URL);
 
 // --- CORS ---
 // Change this to your *deployed frontend URL* later
