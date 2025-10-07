@@ -1,15 +1,17 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+const dns = require('dns');
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  // Force IPv4
-  family: 4
+dns.lookup('db.zdqktdphfbrsorulqweq.supabase.co', { family: 4 }, (err, address) => {
+  if (err) throw err;
+
+  const pool = new Pool({
+    connectionString: `postgresql://postgres:FZuln7lbx5HixOFi@${address}:5432/postgres`,
+    ssl: { rejectUnauthorized: false }
+  });
+
+  pool.connect()
+    .then(() => console.log('✅ DB connected successfully!'))
+    .catch(err => console.error('❌ DB connection failed:', err));
+
+  module.exports = pool;
 });
-
-pool.connect()
-  .then(() => console.log('DB connected successfully!'))
-  .catch(err => console.error('DB connection failed:', err));
-
-module.exports = pool;
