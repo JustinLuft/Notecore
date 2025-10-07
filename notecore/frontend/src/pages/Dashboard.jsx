@@ -339,7 +339,7 @@ export default function Dashboard() {
 </div>
 
 
-      {/* 🔥 Themed Delete Confirmation Overlay */}
+            {/* 🔥 Themed Delete Confirmation Overlay */}
       {confirmDelete && (
         <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="border-2 border-cyan-500 bg-black p-6 rounded-2xl shadow-[0_0_20px_#00ffff55] font-mono text-center w-80 animate-pulse-slow">
@@ -363,6 +363,7 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-    </div>
+    </div>  {/* closes flex-1 flex flex-col (main editor) */}
+  </div>    {/* closes outermost <div className="flex h-screen"> */}
   );
 }
