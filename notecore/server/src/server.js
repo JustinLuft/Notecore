@@ -11,10 +11,24 @@ const app = express();
 // Render will assign a dynamic PORT
 const PORT = process.env.PORT || 5000;
 
-// --- CORS ---
-// Allow your frontend to access backend
+console.log('FRONTEND_URL =', process.env.FRONTEND_URL);
+
+// --- CORS SETUP ---
+const allowedOrigins = [
+  process.env.FRONTEND_URL,        // Deployed frontend
+  'http://localhost:5173'          // Local dev frontend
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL, // your deployed frontend URL
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('CORS not allowed by server'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-user-id'],
   credentials: true
@@ -69,7 +83,7 @@ app.post('/auth/register', async (req, res) => {
 // --- NOTES ROUTES ---
 app.use('/notes', notesRouter);
 
-// --- HEALTH CHECK ---
+// --- HEALTH CHECK (important for Render) ---
 app.get('/', (req, res) => {
   res.send('✅ Notecore backend is running.');
 });
@@ -82,7 +96,6 @@ const startServer = async () => {
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`Frontend URL allowed: ${process.env.FRONTEND_URL}`);
     });
   } catch (err) {
     console.error('❌ Failed to start server:', err);
