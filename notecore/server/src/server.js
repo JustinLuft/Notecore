@@ -11,14 +11,32 @@ console.log('🚀 Starting server...');
 console.log('FRONTEND_URL =', process.env.FRONTEND_URL);
 
 // ------------------ CORS ------------------
-// Only this is needed, no manual app.options('*', ...)
+// Allow multiple origins
+const allowedOrigins = [
+  process.env.FRONTEND_URL, // main frontend URL
+  'https://notecore-a4hnr23zr-justinlufts-projects.vercel.app', // add more preview URLs here
+  // Add other URLs as needed
+];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL, 
+  origin: function (origin, callback) {
+    // allow requests with no origin (like Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('⚠️ CORS blocked for origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-user-id'],
   credentials: true
 };
+
 app.use(cors(corsOptions));
+
 
 // ------------------ Logging middleware ------------------
 app.use((req, res, next) => {
