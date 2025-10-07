@@ -2,6 +2,8 @@
 
 🚀 LIVE Deployment! - https://notecore.vercel.app/
 
+Please Note that since the backend is hosted on render, there may be a delay when first trying to either login or register as the backend boots up on activity.
+
 ─────────────────────────────
 Project Structure
 ─────────────────────────────
