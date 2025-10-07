@@ -21,6 +21,13 @@ app.use(cors({
   credentials: true
 }));
 
+app.options('*', cors({
+  origin: process.env.FRONTEND_URL,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','x-user-id'],
+  credentials: true
+}));
+
 // Parse JSON bodies
 app.use(express.json());
 
