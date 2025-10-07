@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // --- CORS ---
-// Allow your frontend origin and handle credentials
+// Allow frontend origin and handle credentials
 app.use(cors({
   origin: 'https://redesigned-xylophone-qjw5vqvq47h4vgr-5173.app.github.dev', 
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
