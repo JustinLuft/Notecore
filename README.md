@@ -1,4 +1,5 @@
-📝 NoteCore - Themed Note-Taking App 🚀
+📝 NoteCore - Themed Note-Taking App 
+🚀 LIVE Deployment! - https://notecore.vercel.app/
 
 ─────────────────────────────
 Project Structure
