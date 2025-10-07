@@ -1,4 +1,3 @@
-// Load environment variables
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -12,29 +11,19 @@ console.log('🚀 Starting server...');
 console.log('FRONTEND_URL =', process.env.FRONTEND_URL);
 
 // ------------------ CORS ------------------
-// This must come BEFORE routes
-app.use((req, res, next) => {
-  console.log('🔹 Incoming request:', req.method, req.url);
-  next();
-});
-
+// Only this is needed, no manual app.options('*', ...)
 const corsOptions = {
-  origin: process.env.FRONTEND_URL, // exact frontend URL
+  origin: process.env.FRONTEND_URL, 
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-user-id'],
   credentials: true
 };
-
 app.use(cors(corsOptions));
 
-// Log every OPTIONS preflight request
-app.options('*', (req, res) => {
-  console.log('🟢 Preflight OPTIONS request received for:', req.path);
-  res.header('Access-Control-Allow-Origin', corsOptions.origin);
-  res.header('Access-Control-Allow-Methods', corsOptions.methods.join(','));
-  res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders.join(','));
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(204); // No content
+// ------------------ Logging middleware ------------------
+app.use((req, res, next) => {
+  console.log('🔹 Incoming request:', req.method, req.url);
+  next();
 });
 
 // ------------------ Body parser ------------------
@@ -54,11 +43,7 @@ app.use((req, res, next) => {
 app.post('/auth/login', async (req, res) => {
   console.log('🔹 /auth/login called with body:', req.body);
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    console.log('⚠️ Missing email or password');
-    return res.status(400).json({ error: 'Email and password required' });
-  }
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
   try {
     const result = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
@@ -78,11 +63,7 @@ app.post('/auth/login', async (req, res) => {
 app.post('/auth/register', async (req, res) => {
   console.log('🔹 /auth/register called with body:', req.body);
   const { username, email, password } = req.body;
-
-  if (!username || !email || !password) {
-    console.log('⚠️ Missing registration fields');
-    return res.status(400).json({ error: 'All fields are required' });
-  }
+  if (!username || !email || !password) return res.status(400).json({ error: 'All fields are required' });
 
   try {
     const result = await pool.query(
@@ -113,7 +94,6 @@ const startServer = async () => {
     console.log('✅ DB connected successfully!');
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`🌐 FRONTEND_URL = ${process.env.FRONTEND_URL}`);
     });
   } catch (err) {
     console.error('❌ Failed to start server:', err);
