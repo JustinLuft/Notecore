@@ -1,22 +1,23 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { FileText, Plus, Zap } from "lucide-react";
-import jsPDF from "jspdf";
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FileText, Plus, Zap } from 'lucide-react';
+import jsPDF from 'jspdf';
 
 export default function Dashboard() {
   const [notes, setNotes] = useState([]);
   const [currentNote, setCurrentNote] = useState(null);
-  const [content, setContent] = useState("");
-  const [title, setTitle] = useState("");
-  const [saveStatus, setSaveStatus] = useState("SYNCED");
+  const [content, setContent] = useState('');
+  const [title, setTitle] = useState('');
+  const [saveStatus, setSaveStatus] = useState('SYNCED');
   const [dirty, setDirty] = useState(false);
   const [glitchEffect, setGlitchEffect] = useState(false);
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const editorRef = useRef(null);
 
   const navigate = useNavigate();
-  const username = localStorage.getItem("username") || "GUEST";
-  const userId = localStorage.getItem("userId");
+  const username = localStorage.getItem('username') || 'GUEST';
+  const userId = localStorage.getItem('userId');
   const API = `${import.meta.env.VITE_API_URL}/notes`;
 
   // Glitch effect
@@ -30,17 +31,17 @@ export default function Dashboard() {
 
   // Fetch notes
   const fetchNotes = async () => {
-    if (!userId) return navigate("/");
+    if (!userId) return navigate('/');
     setLoading(true);
     try {
       const res = await fetch(API, {
-        headers: { "Content-Type": "application/json", "x-user-id": userId },
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
       });
-      if (!res.ok) throw new Error("Failed to fetch notes");
+      if (!res.ok) throw new Error('Failed to fetch notes');
       const data = await res.json();
       setNotes(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Failed to fetch notes:", err);
+      console.error('Failed to fetch notes:', err);
       setNotes([]);
     } finally {
       setLoading(false);
@@ -51,7 +52,7 @@ export default function Dashboard() {
     fetchNotes();
   }, []);
 
-  // Load note
+  // Load note when selected
   useEffect(() => {
     if (currentNote) {
       const note = notes.find((n) => n.id === currentNote);
@@ -59,70 +60,70 @@ export default function Dashboard() {
         setTitle(note.title);
         setContent(note.content);
         setDirty(false);
-        setSaveStatus("SYNCED");
+        setSaveStatus('SYNCED');
       }
     } else {
-      setTitle("");
-      setContent("");
+      setTitle('');
+      setContent('');
       setDirty(false);
-      setSaveStatus("SYNCED");
+      setSaveStatus('SYNCED');
     }
   }, [currentNote, notes]);
 
   const handleTitleChange = (e) => {
     setTitle(e.target.value);
     setDirty(true);
-    setSaveStatus("UNSAVED");
+    setSaveStatus('UNSAVED');
   };
 
   const createNewNote = async () => {
     try {
       const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": userId },
-        body: JSON.stringify({ title: "UNTITLED_FILE.txt", content: "" }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+        body: JSON.stringify({ title: 'UNTITLED_FILE.txt', content: '' }),
       });
       const newNote = await res.json();
       setNotes((prev) => [newNote, ...prev]);
       setCurrentNote(newNote.id);
     } catch (err) {
-      console.error("Failed to create note:", err);
+      console.error('Failed to create note:', err);
     }
   };
 
   const saveNote = async () => {
     if (!currentNote) return;
-    setSaveStatus("UPLOADING...");
+    setSaveStatus('UPLOADING...');
     try {
       const res = await fetch(`${API}/${currentNote}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", "x-user-id": userId },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
         body: JSON.stringify({ title, content }),
       });
-      if (!res.ok) throw new Error("Failed to save note");
+      if (!res.ok) throw new Error('Failed to save note');
       setNotes((prev) =>
         prev.map((note) =>
           note.id === currentNote ? { ...note, title, content } : note
         )
       );
-      setSaveStatus("SYNCED");
+      setSaveStatus('SYNCED');
       setDirty(false);
     } catch (err) {
       console.error(err);
-      setSaveStatus("ERROR");
+      setSaveStatus('ERROR');
     }
   };
 
+  // Delete flow
   const requestDeleteNote = (id) => setConfirmDelete(id);
-
   const confirmDeleteNote = async () => {
     if (!confirmDelete) return;
     try {
       const res = await fetch(`${API}/${confirmDelete}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json", "x-user-id": userId },
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
       });
-      if (!res.ok) throw new Error("Failed to delete note");
+      if (!res.ok) throw new Error('Failed to delete note');
       setNotes((prev) => prev.filter((note) => note.id !== confirmDelete));
       if (currentNote === confirmDelete) setCurrentNote(null);
     } catch (err) {
@@ -135,23 +136,28 @@ export default function Dashboard() {
   const downloadPDF = () => {
     if (!currentNote) return;
     const doc = new jsPDF();
-    doc.setFont("courier", "normal");
+    doc.setFont('courier', 'normal');
     doc.setFontSize(14);
     doc.text(title, 10, 20);
     const splitText = doc.splitTextToSize(content, 180);
     doc.text(splitText, 10, 30);
-    doc.save(`${title.replace(/\s+/g, "_")}.pdf`);
+    doc.save(`${title.replace(/\s+/g, '_')}.pdf`);
   };
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/");
+    navigate('/');
   };
 
   if (loading)
-    return (
-      <div className="text-cyan-400 p-10 font-mono">Loading notes...</div>
-    );
+    return <div className="text-cyan-400 p-10 font-mono">Loading notes...</div>;
+
+  // Apply toolbar formatting commands
+  const execCmd = (cmd, val = null) => {
+    document.execCommand(cmd, false, val);
+    setDirty(true);
+    setSaveStatus('UNSAVED');
+  };
 
   return (
     <div className="flex h-screen bg-black overflow-hidden relative">
@@ -170,43 +176,40 @@ export default function Dashboard() {
         </div>
         <div className="flex-1 overflow-y-auto">
           <div className="p-2">
-            {Array.isArray(notes) &&
-              notes.map((note) => (
-                <div
-                  key={note.id}
-                  className="flex items-center justify-between mb-1"
+            {notes.map((note) => (
+              <div key={note.id} className="flex items-center justify-between mb-1">
+                <button
+                  onClick={() => setCurrentNote(note.id)}
+                  className={`w-full text-left px-3 py-3 transition-all font-mono text-sm border-l-2 ${
+                    currentNote === note.id
+                      ? 'bg-cyan-950 border-cyan-400 text-cyan-300'
+                      : 'border-transparent text-gray-400 hover:bg-gray-900 hover:border-cyan-600 hover:text-cyan-500'
+                  }`}
                 >
-                  <button
-                    onClick={() => setCurrentNote(note.id)}
-                    className={`w-full text-left px-3 py-3 transition-all font-mono text-sm border-l-2 ${
-                      currentNote === note.id
-                        ? "bg-cyan-950 border-cyan-400 text-cyan-300"
-                        : "border-transparent text-gray-400 hover:bg-gray-900 hover:border-cyan-600 hover:text-cyan-500"
-                    }`}
-                  >
-                    <div className="font-bold truncate flex items-center gap-2">
-                      <FileText size={14} />
-                      {note.title}
-                    </div>
-                    <div className="text-xs opacity-70 truncate mt-1">
-                      {note.content.substring(0, 40) || ">>> EMPTY FILE"}
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => requestDeleteNote(note.id)}
-                    className="text-red-500 px-2 font-bold hover:text-red-400 transition-all"
-                  >
-                    X
-                  </button>
-                </div>
-              ))}
+                  <div className="font-bold truncate flex items-center gap-2">
+                    <FileText size={14} />
+                    {note.title}
+                  </div>
+                  <div className="text-xs opacity-70 truncate mt-1">
+                    {note.content.replace(/<[^>]+>/g, '').substring(0, 40) ||
+                      '>>> EMPTY FILE'}
+                  </div>
+                </button>
+                <button
+                  onClick={() => requestDeleteNote(note.id)}
+                  className="text-red-500 px-2 font-bold hover:text-red-400 transition-all"
+                >
+                  X
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Main Editor */}
       <div className="flex-1 flex flex-col relative z-10">
-        {/* Header */}
+        {/* Top Header */}
         <div className="bg-black border-b-2 border-cyan-500 px-6 py-4 flex items-center justify-between z-20">
           <div className="flex-1">
             {currentNote && (
@@ -215,7 +218,7 @@ export default function Dashboard() {
                 value={title}
                 onChange={handleTitleChange}
                 className={`text-xl font-bold font-mono bg-transparent text-cyan-400 outline-none border-none ${
-                  glitchEffect ? "glitch" : ""
+                  glitchEffect ? 'glitch' : ''
                 }`}
                 placeholder="FILENAME.txt"
               />
@@ -225,13 +228,13 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <span
               className={`text-xs font-mono px-2 py-1 rounded ${
-                saveStatus === "SYNCED"
-                  ? "bg-green-950 text-green-400"
-                  : saveStatus === "UNSAVED"
-                  ? "bg-red-950 text-red-400 animate-pulse"
-                  : saveStatus === "UPLOADING..."
-                  ? "bg-yellow-950 text-yellow-400 animate-pulse"
-                  : "bg-gray-950 text-gray-400"
+                saveStatus === 'SYNCED'
+                  ? 'bg-green-950 text-green-400'
+                  : saveStatus === 'UNSAVED'
+                  ? 'bg-red-950 text-red-400 animate-pulse'
+                  : saveStatus === 'UPLOADING...'
+                  ? 'bg-yellow-950 text-yellow-400 animate-pulse'
+                  : 'bg-gray-950 text-gray-400'
               }`}
             >
               {saveStatus}
@@ -262,28 +265,26 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Editor Area */}
+        {/* Editor */}
         <div className="flex-1 p-6 overflow-y-auto bg-black flex flex-col">
           {currentNote ? (
             <>
-              {/* Toolbar */}
+              {/* 🧰 Toolbar */}
               <div className="flex gap-2 mb-4 border-b border-cyan-700 pb-3">
                 <button
-                  onClick={() => document.execCommand("bold")}
-                  className="px-3 py-1 bg-cyan-500 text-black font-mono font-bold rounded hover:bg-cyan-400 transition-all text-xs"
+                  onClick={() => execCmd('bold')}
+                  className="px-3 py-1 bg-cyan-500 text-black font-mono font-bold rounded hover:bg-cyan-400 text-xs"
                 >
                   BOLD
                 </button>
                 <button
-                  onClick={() => document.execCommand("italic")}
-                  className="px-3 py-1 bg-cyan-500 text-black font-mono italic rounded hover:bg-cyan-400 transition-all text-xs"
+                  onClick={() => execCmd('italic')}
+                  className="px-3 py-1 bg-cyan-500 text-black font-mono italic rounded hover:bg-cyan-400 text-xs"
                 >
                   ITALIC
                 </button>
                 <select
-                  onChange={(e) =>
-                    document.execCommand("foreColor", false, e.target.value)
-                  }
+                  onChange={(e) => execCmd('foreColor', e.target.value)}
                   className="bg-black border border-cyan-600 text-cyan-400 text-xs font-mono rounded px-2"
                 >
                   <option value="#00ff00">Green</option>
@@ -293,9 +294,7 @@ export default function Dashboard() {
                   <option value="#ffffff">White</option>
                 </select>
                 <select
-                  onChange={(e) =>
-                    document.execCommand("fontSize", false, e.target.value)
-                  }
+                  onChange={(e) => execCmd('fontSize', e.target.value)}
                   className="bg-black border border-cyan-600 text-cyan-400 text-xs font-mono rounded px-2"
                 >
                   <option value="2">Small</option>
@@ -306,21 +305,23 @@ export default function Dashboard() {
                 </select>
               </div>
 
-              {/* Editable area */}
+              {/* 🧾 Editable content area (fixed typing glitch) */}
               <div
+                ref={editorRef}
                 contentEditable
                 suppressContentEditableWarning
                 onInput={(e) => {
                   setContent(e.currentTarget.innerHTML);
                   setDirty(true);
-                  setSaveStatus("UNSAVED");
+                  setSaveStatus('UNSAVED');
                 }}
-                dangerouslySetInnerHTML={{ __html: content }}
+                onBlur={() => saveNote()}
                 className="flex-1 min-h-96 outline-none bg-transparent text-green-400 font-mono text-sm leading-relaxed overflow-y-auto p-2 border border-cyan-800 rounded"
                 style={{
-                  textShadow: "0 0 5px rgba(0, 255, 0, 0.5)",
-                  caretColor: "#00ff00",
+                  textShadow: '0 0 5px rgba(0, 255, 0, 0.5)',
+                  caretColor: '#00ff00',
                 }}
+                dangerouslySetInnerHTML={{ __html: content }}
               />
             </>
           ) : (
@@ -333,32 +334,32 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Delete Confirmation Overlay */}
-      {confirmDelete && (
-        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="border-2 border-cyan-500 bg-black p-6 rounded-2xl shadow-[0_0_20px_#00ffff55] font-mono text-center w-80 animate-pulse-slow">
-            <p className="text-cyan-400 mb-4 text-sm">
-              CONFIRM DELETION OF FILE?
-            </p>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={confirmDeleteNote}
-                className="px-4 py-2 bg-red-500 text-black font-bold rounded hover:bg-red-400 transition-all"
-              >
-                DELETE
-              </button>
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="px-4 py-2 bg-gray-700 text-cyan-300 font-bold rounded hover:bg-gray-600 transition-all"
-              >
-                CANCEL
-              </button>
+        {/* 🔥 Delete Confirmation Overlay */}
+        {confirmDelete && (
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="border-2 border-cyan-500 bg-black p-6 rounded-2xl shadow-[0_0_20px_#00ffff55] font-mono text-center w-80">
+              <p className="text-cyan-400 mb-4 text-sm">
+                CONFIRM DELETION OF FILE?
+              </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={confirmDeleteNote}
+                  className="px-4 py-2 bg-red-500 text-black font-bold rounded hover:bg-red-400 transition-all"
+                >
+                  DELETE
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="px-4 py-2 bg-gray-700 text-cyan-300 font-bold rounded hover:bg-gray-600 transition-all"
+                >
+                  CANCEL
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
