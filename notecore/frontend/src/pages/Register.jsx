@@ -7,20 +7,22 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [glitchActive, setGlitchActive] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showError, setShowError] = useState(false);
+  const [registerAttempts, setRegisterAttempts] = useState(0);
   const navigate = useNavigate();
 
-  // Random glitch effect
+  // Auto-hide error message
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.7) {
-        setGlitchActive(true);
-        setTimeout(() => setGlitchActive(false), 200);
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    if (showError) {
+      const timer = setTimeout(() => {
+        setShowError(false);
+        setErrorMessage('');
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [showError]);
 
   // Calculate password strength
   useEffect(() => {
@@ -51,10 +53,31 @@ export default function Register() {
     return 'SECURE';
   };
 
+  const triggerError = (message) => {
+    setErrorMessage(message);
+    setShowError(true);
+    setRegisterAttempts(prev => prev + 1);
+    
+    // Clear fields
+    setUsername('');
+    setEmail('');
+    setPassword('');
+    setConfirm('');
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
-    if (!username || !email || !password) return alert('Enter all fields!');
-    if (password !== confirm) return alert('Passwords do not match!');
+    
+    // Validation
+    if (!username || !email || !password) {
+      triggerError('ERROR: ALL FIELDS REQUIRED');
+      return;
+    }
+    
+    if (password !== confirm) {
+      triggerError('ERROR: PASSWORDS DO NOT MATCH');
+      return;
+    }
     
     setIsLoading(true);
     
@@ -68,17 +91,20 @@ export default function Register() {
       
       if (!res.ok) {
         setIsLoading(false);
-        return alert(data.error || 'Registration failed');
+        triggerError(data.error || 'ERROR: REGISTRATION FAILED');
+        return;
       }
       
-      alert('Registration successful! You can now login.');
+      // Success - show success message and redirect
+      setErrorMessage('');
+      setShowError(false);
       setTimeout(() => {
         navigate('/');
       }, 500);
     } catch (err) {
       console.error('Registration failed:', err);
       setIsLoading(false);
-      alert('Server error, try again later');
+      triggerError('ERROR: SERVER CONNECTION FAILED');
     }
   };
 
@@ -98,7 +124,7 @@ export default function Register() {
 
       {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(25)].map((_, i) => (
           <div
             key={i}
             className="absolute w-1 h-1 bg-cyan-400 rounded-full opacity-50"
@@ -115,29 +141,73 @@ export default function Register() {
       {/* Radial gradient glow */}
       <div className="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-transparent"></div>
 
+      {/* Error notification */}
+      {showError && (
+        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-50 animate-slide-down">
+          <div className="bg-red-900/90 backdrop-blur-xl border-2 border-red-500 rounded-lg px-6 py-4 shadow-lg"
+            style={{
+              boxShadow: '0 0 30px rgba(255, 0, 0, 0.8), inset 0 0 20px rgba(255, 0, 0, 0.2)',
+              animation: 'error-pulse 0.5s ease-in-out'
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="text-red-400 text-2xl font-bold">⚠</div>
+              <div>
+                <div className="text-red-400 font-mono font-bold text-sm">REGISTRATION DENIED</div>
+                <div className="text-red-300 font-mono text-xs mt-1">{errorMessage}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main register container */}
       <div className="relative z-10 w-full max-w-md px-6">
         <form
           onSubmit={handleRegister}
           className={`relative bg-black/80 backdrop-blur-xl p-8 rounded-lg border-2 transition-all duration-300 ${
-            glitchActive ? 'border-red-500 translate-x-1' : 'border-cyan-500'
+            showError ? 'border-red-500 animate-shake' : 'border-cyan-500'
           }`}
           style={{
-            boxShadow: glitchActive 
+            boxShadow: showError 
               ? '0 0 40px rgba(255, 0, 0, 0.8), inset 0 0 20px rgba(255, 0, 0, 0.2)'
               : '0 0 40px rgba(0, 255, 255, 0.6), inset 0 0 20px rgba(0, 255, 255, 0.1)'
           }}
         >
           {/* Corner decorations */}
-          <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyan-400"></div>
-          <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-400"></div>
-          <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-400"></div>
-          <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-400"></div>
+          <div className={`absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 transition-colors ${
+            showError ? 'border-red-400' : 'border-cyan-400'
+          }`}></div>
+          <div className={`absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 transition-colors ${
+            showError ? 'border-red-400' : 'border-cyan-400'
+          }`}></div>
+          <div className={`absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 transition-colors ${
+            showError ? 'border-red-400' : 'border-cyan-400'
+          }`}></div>
+          <div className={`absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 transition-colors ${
+            showError ? 'border-red-400' : 'border-cyan-400'
+          }`}></div>
+
+          {/* Corner accent dots */}
+          <div className={`absolute top-1 left-1 w-1 h-1 rounded-full transition-colors ${
+            showError ? 'bg-red-400' : 'bg-cyan-400'
+          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
+          <div className={`absolute top-1 right-1 w-1 h-1 rounded-full transition-colors ${
+            showError ? 'bg-red-400' : 'bg-cyan-400'
+          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
+          <div className={`absolute bottom-1 left-1 w-1 h-1 rounded-full transition-colors ${
+            showError ? 'bg-red-400' : 'bg-cyan-400'
+          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
+          <div className={`absolute bottom-1 right-1 w-1 h-1 rounded-full transition-colors ${
+            showError ? 'bg-red-400' : 'bg-cyan-400'
+          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
 
           {/* Animated scan line */}
           <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
             <div 
-              className="absolute w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-50"
+              className={`absolute w-full h-1 bg-gradient-to-r from-transparent to-transparent opacity-50 ${
+                showError ? 'via-red-400' : 'via-cyan-400'
+              }`}
               style={{ animation: 'scan 4s linear infinite' }}
             ></div>
           </div>
@@ -145,74 +215,118 @@ export default function Register() {
           {/* Header */}
           <div className="mb-8">
             <h1 className={`text-3xl font-mono font-bold text-center mb-2 transition-all ${
-              glitchActive ? 'text-red-500' : 'text-cyan-400'
+              showError ? 'text-red-500' : 'text-cyan-400'
             }`} style={{
-              textShadow: glitchActive 
+              textShadow: showError 
                 ? '0 0 10px rgba(255, 0, 0, 1), 0 0 20px rgba(255, 0, 0, 0.8)'
                 : '0 0 10px rgba(0, 255, 255, 1), 0 0 20px rgba(0, 255, 255, 0.8)'
             }}>
-              {glitchActive ? 'R3G1ST3R_P0RT@L.exe' : 'REGISTER_PORTAL.exe'}
+              {showError ? 'REGISTRATION_DENIED.exe' : 'REGISTER_PORTAL.exe'}
             </h1>
-            <div className="flex items-center justify-center gap-2 text-xs font-mono">
-              <span className="text-green-400">●</span>
-              <span className="text-gray-400">NEW_USER.INIT</span>
-              <span className="text-gray-600">|</span>
-              <span className="text-gray-400">v2.077</span>
+            
+            {/* System status indicators */}
+            <div className="flex items-center justify-center gap-3 text-xs font-mono mb-4">
+              <div className="flex items-center gap-1.5">
+                <span className={showError ? 'text-red-400' : 'text-green-400'}>●</span>
+                <span className="text-gray-400">{showError ? 'SECURITY.ALERT' : 'NEW_USER.INIT'}</span>
+              </div>
+            </div>
+
+            {/* Additional info bar */}
+            <div className="flex items-center justify-center gap-2 text-xs font-mono text-gray-600 border-t border-b border-cyan-900/30 py-2">
+              <span>v2.077</span>
+              <span>•</span>
+              <span>SSL:ENABLED</span>
+              <span>•</span>
+              <span>ATTEMPTS:{registerAttempts}</span>
             </div>
           </div>
 
           {/* Username input */}
           <div className="mb-4 relative group">
-            <label className="block text-xs font-mono text-cyan-400 mb-2 uppercase tracking-wider">
-              ▸ Username
+            <label className={`block text-xs font-mono mb-2 uppercase tracking-wider transition-colors flex items-center justify-between ${
+              showError ? 'text-red-400' : 'text-cyan-400'
+            }`}>
+              <span>▸ Username</span>
+              <span className="text-gray-600 text-xs">[REQUIRED]</span>
             </label>
             <input
               type="text"
               placeholder="Enter callsign"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 bg-black/50 border border-cyan-600 text-cyan-300 rounded font-mono text-sm focus:outline-none focus:border-cyan-400 focus:bg-black/70 transition-all placeholder-cyan-800"
+              className={`w-full px-4 py-3 bg-black/50 border rounded font-mono text-sm focus:outline-none focus:bg-black/70 transition-all placeholder-cyan-800 ${
+                showError 
+                  ? 'border-red-600 text-red-300 focus:border-red-400'
+                  : 'border-cyan-600 text-cyan-300 focus:border-cyan-400'
+              }`}
               style={{
-                boxShadow: '0 0 10px rgba(0, 255, 255, 0.1)'
+                boxShadow: showError 
+                  ? '0 0 10px rgba(255, 0, 0, 0.2)'
+                  : '0 0 10px rgba(0, 255, 255, 0.1)'
               }}
             />
-            <div className="absolute bottom-0 left-0 h-0.5 bg-cyan-400 transition-all duration-300 group-focus-within:w-full w-0"></div>
+            <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-300 group-focus-within:w-full w-0 ${
+              showError ? 'bg-red-400' : 'bg-cyan-400'
+            }`}></div>
           </div>
 
           {/* Email input */}
           <div className="mb-4 relative group">
-            <label className="block text-xs font-mono text-cyan-400 mb-2 uppercase tracking-wider">
-              ▸ Email Address
+            <label className={`block text-xs font-mono mb-2 uppercase tracking-wider transition-colors flex items-center justify-between ${
+              showError ? 'text-red-400' : 'text-cyan-400'
+            }`}>
+              <span>▸ Email Address</span>
+              <span className="text-gray-600 text-xs">[REQUIRED]</span>
             </label>
             <input
               type="email"
               placeholder="user@notecore.io"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-black/50 border border-cyan-600 text-cyan-300 rounded font-mono text-sm focus:outline-none focus:border-cyan-400 focus:bg-black/70 transition-all placeholder-cyan-800"
+              className={`w-full px-4 py-3 bg-black/50 border rounded font-mono text-sm focus:outline-none focus:bg-black/70 transition-all placeholder-cyan-800 ${
+                showError 
+                  ? 'border-red-600 text-red-300 focus:border-red-400'
+                  : 'border-cyan-600 text-cyan-300 focus:border-cyan-400'
+              }`}
               style={{
-                boxShadow: '0 0 10px rgba(0, 255, 255, 0.1)'
+                boxShadow: showError 
+                  ? '0 0 10px rgba(255, 0, 0, 0.2)'
+                  : '0 0 10px rgba(0, 255, 255, 0.1)'
               }}
             />
-            <div className="absolute bottom-0 left-0 h-0.5 bg-cyan-400 transition-all duration-300 group-focus-within:w-full w-0"></div>
+            <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-300 group-focus-within:w-full w-0 ${
+              showError ? 'bg-red-400' : 'bg-cyan-400'
+            }`}></div>
           </div>
 
           {/* Password input with strength meter */}
           <div className="mb-4 relative group">
-            <label className="block text-xs font-mono text-cyan-400 mb-2 uppercase tracking-wider">
-              ▸ Access Code
+            <label className={`block text-xs font-mono mb-2 uppercase tracking-wider transition-colors flex items-center justify-between ${
+              showError ? 'text-red-400' : 'text-cyan-400'
+            }`}>
+              <span>▸ Access Code</span>
+              <span className="text-gray-600 text-xs">[ENCRYPTED]</span>
             </label>
             <input
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-black/50 border border-cyan-600 text-cyan-300 rounded font-mono text-sm focus:outline-none focus:border-cyan-400 focus:bg-black/70 transition-all placeholder-cyan-800"
+              className={`w-full px-4 py-3 bg-black/50 border rounded font-mono text-sm focus:outline-none focus:bg-black/70 transition-all placeholder-cyan-800 ${
+                showError 
+                  ? 'border-red-600 text-red-300 focus:border-red-400'
+                  : 'border-cyan-600 text-cyan-300 focus:border-cyan-400'
+              }`}
               style={{
-                boxShadow: '0 0 10px rgba(0, 255, 255, 0.1)'
+                boxShadow: showError 
+                  ? '0 0 10px rgba(255, 0, 0, 0.2)'
+                  : '0 0 10px rgba(0, 255, 255, 0.1)'
               }}
             />
-            <div className="absolute bottom-0 left-0 h-0.5 bg-cyan-400 transition-all duration-300 group-focus-within:w-full w-0"></div>
+            <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-300 group-focus-within:w-full w-0 ${
+              showError ? 'bg-red-400' : 'bg-cyan-400'
+            }`}></div>
             
             {/* Password strength indicator */}
             {password && (
@@ -244,20 +358,31 @@ export default function Register() {
 
           {/* Confirm password input */}
           <div className="mb-6 relative group">
-            <label className="block text-xs font-mono text-cyan-400 mb-2 uppercase tracking-wider">
-              ▸ Confirm Code
+            <label className={`block text-xs font-mono mb-2 uppercase tracking-wider transition-colors flex items-center justify-between ${
+              showError ? 'text-red-400' : 'text-cyan-400'
+            }`}>
+              <span>▸ Confirm Code</span>
+              <span className="text-gray-600 text-xs">[VERIFY]</span>
             </label>
             <input
               type="password"
               placeholder="••••••••"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="w-full px-4 py-3 bg-black/50 border border-cyan-600 text-cyan-300 rounded font-mono text-sm focus:outline-none focus:border-cyan-400 focus:bg-black/70 transition-all placeholder-cyan-800"
+              className={`w-full px-4 py-3 bg-black/50 border rounded font-mono text-sm focus:outline-none focus:bg-black/70 transition-all placeholder-cyan-800 ${
+                showError 
+                  ? 'border-red-600 text-red-300 focus:border-red-400'
+                  : 'border-cyan-600 text-cyan-300 focus:border-cyan-400'
+              }`}
               style={{
-                boxShadow: '0 0 10px rgba(0, 255, 255, 0.1)'
+                boxShadow: showError 
+                  ? '0 0 10px rgba(255, 0, 0, 0.2)'
+                  : '0 0 10px rgba(0, 255, 255, 0.1)'
               }}
             />
-            <div className="absolute bottom-0 left-0 h-0.5 bg-cyan-400 transition-all duration-300 group-focus-within:w-full w-0"></div>
+            <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-300 group-focus-within:w-full w-0 ${
+              showError ? 'bg-red-400' : 'bg-cyan-400'
+            }`}></div>
             
             {/* Password match indicator */}
             {confirm && (
@@ -317,13 +442,20 @@ export default function Register() {
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className="w-2 h-2 bg-cyan-400 rounded-full opacity-50"
+                className={`w-2 h-2 rounded-full opacity-50 ${
+                  showError ? 'bg-red-400' : 'bg-cyan-400'
+                }`}
                 style={{
                   animation: `pulse 1.5s ease-in-out infinite`,
                   animationDelay: `${i * 0.2}s`
                 }}
               ></div>
             ))}
+          </div>
+
+          {/* Timestamp */}
+          <div className="mt-3 text-center text-xs font-mono text-gray-700">
+            {new Date().toLocaleTimeString('en-US', { hour12: false })} UTC
           </div>
         </form>
       </div>
@@ -348,6 +480,30 @@ export default function Register() {
         @keyframes pulse {
           0%, 100% { opacity: 0.3; transform: scale(1); }
           50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        @keyframes slide-down {
+          0% { transform: translate(-50%, -100%); opacity: 0; }
+          100% { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        @keyframes error-pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+
+        .animate-slide-down {
+          animation: slide-down 0.3s ease-out;
         }
       `}</style>
     </div>
