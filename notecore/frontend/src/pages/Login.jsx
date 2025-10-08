@@ -185,7 +185,7 @@ export default function Login() {
                 ? '0 0 10px rgba(255, 0, 0, 1), 0 0 20px rgba(255, 0, 0, 0.8)'
                 : '0 0 10px rgba(0, 255, 255, 1), 0 0 20px rgba(0, 255, 255, 0.8)'
             }}>
-              {showError ? 'ACCESS_DENIED' : glitchActive ? 'L0G1N_P0RT@L.exe' : 'NOTECORE_LOGIN.exe'}
+              {showError ? 'ACCESS_DENIED.exe' : glitchActive ? 'L0G1N_P0RT@L.exe' : 'LOGIN_PORTAL.exe'}
             </h1>
             <div className="flex items-center justify-center gap-2 text-xs font-mono">
               <span className={showError ? 'text-red-400' : 'text-green-400'}>●</span>
