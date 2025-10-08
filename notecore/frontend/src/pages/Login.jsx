@@ -39,7 +39,7 @@ export default function Login() {
         return alert(data.error || 'Invalid credentials');
       }
       
-      // Store user data in memory (not localStorage due to Claude.ai restrictions)
+      // Store user data in memory
       window.userId = data.userId;
       window.username = data.username;
       
