@@ -7,27 +7,8 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showError, setShowError] = useState(false);
-  const [dbStatus, setDbStatus] = useState('checking');
   const [loginAttempts, setLoginAttempts] = useState(0);
   const navigate = useNavigate();
-
-  // Check database status
-  useEffect(() => {
-    const checkDb = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/health`, {
-          method: 'GET',
-        });
-        setDbStatus(res.ok ? 'online' : 'offline');
-      } catch {
-        setDbStatus('offline');
-      }
-    };
-    
-    checkDb();
-    const interval = setInterval(checkDb, 30000); // Check every 30s
-    return () => clearInterval(interval);
-  }, []);
 
   // Auto-hide error message
   useEffect(() => {
