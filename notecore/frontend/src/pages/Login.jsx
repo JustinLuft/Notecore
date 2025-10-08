@@ -185,7 +185,7 @@ export default function Login() {
                 ? '0 0 10px rgba(255, 0, 0, 1), 0 0 20px rgba(255, 0, 0, 0.8)'
                 : '0 0 10px rgba(0, 255, 255, 1), 0 0 20px rgba(0, 255, 255, 0.8)'
             }}>
-              {showError ? 'ACCESS_DENIED.exe' : 'LOGIN_PORTAL.exe'}
+              {showError ? 'ACCESS_DENIED.exe' : 'NOTECORE_LOGIN.exe'}
             </h1>
             
             {/* System status indicators */}
