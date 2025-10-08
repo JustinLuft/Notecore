@@ -5,10 +5,21 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [glitchActive, setGlitchActive] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showError, setShowError] = useState(false);
-  const [loginAttempts, setLoginAttempts] = useState(0);
   const navigate = useNavigate();
+
+  // Random glitch effect (aesthetic only)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (Math.random() > 0.85 && !showError) {
+        setGlitchActive(true);
+        setTimeout(() => setGlitchActive(false), 150);
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [showError]);
 
   // Auto-hide error message
   useEffect(() => {
@@ -24,11 +35,14 @@ export default function Login() {
   const triggerError = (message) => {
     setErrorMessage(message);
     setShowError(true);
-    setLoginAttempts(prev => prev + 1);
+    setGlitchActive(true);
     
     // Clear fields
     setEmail('');
     setPassword('');
+    
+    // Stop glitch after animation
+    setTimeout(() => setGlitchActive(false), 500);
   };
 
   const handleLogin = async (e) => {
@@ -88,7 +102,7 @@ export default function Login() {
 
       {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(25)].map((_, i) => (
+        {[...Array(20)].map((_, i) => (
           <div
             key={i}
             className="absolute w-1 h-1 bg-cyan-400 rounded-full opacity-50"
@@ -130,10 +144,10 @@ export default function Login() {
         <form
           onSubmit={handleLogin}
           className={`relative bg-black/80 backdrop-blur-xl p-8 rounded-lg border-2 transition-all duration-300 ${
-            showError ? 'border-red-500 animate-shake' : 'border-cyan-500'
+            showError ? 'border-red-500 animate-shake' : glitchActive ? 'border-red-500 translate-x-1' : 'border-cyan-500'
           }`}
           style={{
-            boxShadow: showError
+            boxShadow: showError || glitchActive
               ? '0 0 40px rgba(255, 0, 0, 0.8), inset 0 0 20px rgba(255, 0, 0, 0.2)'
               : '0 0 40px rgba(0, 255, 255, 0.6), inset 0 0 20px rgba(0, 255, 255, 0.1)'
           }}
@@ -152,20 +166,6 @@ export default function Login() {
             showError ? 'border-red-400' : 'border-cyan-400'
           }`}></div>
 
-          {/* Corner accent dots */}
-          <div className={`absolute top-1 left-1 w-1 h-1 rounded-full transition-colors ${
-            showError ? 'bg-red-400' : 'bg-cyan-400'
-          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
-          <div className={`absolute top-1 right-1 w-1 h-1 rounded-full transition-colors ${
-            showError ? 'bg-red-400' : 'bg-cyan-400'
-          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
-          <div className={`absolute bottom-1 left-1 w-1 h-1 rounded-full transition-colors ${
-            showError ? 'bg-red-400' : 'bg-cyan-400'
-          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
-          <div className={`absolute bottom-1 right-1 w-1 h-1 rounded-full transition-colors ${
-            showError ? 'bg-red-400' : 'bg-cyan-400'
-          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
-
           {/* Animated scan line */}
           <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
             <div 
@@ -179,51 +179,28 @@ export default function Login() {
           {/* Header */}
           <div className="mb-8">
             <h1 className={`text-3xl font-mono font-bold text-center mb-2 transition-all ${
-              showError ? 'text-red-500' : 'text-cyan-400'
+              showError ? 'text-red-500' : glitchActive ? 'text-red-500' : 'text-cyan-400'
             }`} style={{
-              textShadow: showError
+              textShadow: showError || glitchActive
                 ? '0 0 10px rgba(255, 0, 0, 1), 0 0 20px rgba(255, 0, 0, 0.8)'
                 : '0 0 10px rgba(0, 255, 255, 1), 0 0 20px rgba(0, 255, 255, 0.8)'
             }}>
-              {showError ? 'ACCESS_DENIED.exe' : 'LOGIN_PORTAL.exe'}
+              {showError ? 'ACCESS_DENIED.exe' : glitchActive ? 'L0G1N_P0RT@L.exe' : 'LOGIN_PORTAL.exe'}
             </h1>
-            
-            {/* System status indicators */}
-            <div className="flex items-center justify-center gap-3 text-xs font-mono mb-4">
-              <div className="flex items-center gap-1.5">
-                <span className={showError ? 'text-red-400' : 'text-green-400'}>●</span>
-                <span className="text-gray-400">{showError ? 'SECURITY.ALERT' : 'SYSTEM.ONLINE'}</span>
-              </div>
-              <span className="text-gray-700">|</span>
-              <div className="flex items-center gap-1.5">
-                <span className={
-                  dbStatus === 'online' ? 'text-green-400' : 
-                  dbStatus === 'offline' ? 'text-red-400' : 
-                  'text-yellow-400'
-                }>●</span>
-                <span className="text-gray-400">
-                  DATABASE.{dbStatus === 'checking' ? 'SYNC' : dbStatus.toUpperCase()}
-                </span>
-              </div>
-            </div>
-
-            {/* Additional info bar */}
-            <div className="flex items-center justify-center gap-2 text-xs font-mono text-gray-600 border-t border-b border-cyan-900/30 py-2">
-              <span>v2.077</span>
-              <span>•</span>
-              <span>SSL:ENABLED</span>
-              <span>•</span>
-              <span>ATTEMPTS:{loginAttempts}</span>
+            <div className="flex items-center justify-center gap-2 text-xs font-mono">
+              <span className={showError ? 'text-red-400' : 'text-green-400'}>●</span>
+              <span className="text-gray-400">{showError ? 'SECURITY.ALERT' : 'SYSTEM.ONLINE'}</span>
+              <span className="text-gray-600">|</span>
+              <span className="text-gray-400">v2.077</span>
             </div>
           </div>
 
           {/* Email input */}
           <div className="mb-4 relative group">
-            <label className={`block text-xs font-mono mb-2 uppercase tracking-wider transition-colors flex items-center justify-between ${
+            <label className={`block text-xs font-mono mb-2 uppercase tracking-wider transition-colors ${
               showError ? 'text-red-400' : 'text-cyan-400'
             }`}>
-              <span>▸ User ID</span>
-              <span className="text-gray-600 text-xs">[REQUIRED]</span>
+              ▸ User ID
             </label>
             <input
               type="email"
@@ -248,11 +225,10 @@ export default function Login() {
 
           {/* Password input */}
           <div className="mb-6 relative group">
-            <label className={`block text-xs font-mono mb-2 uppercase tracking-wider transition-colors flex items-center justify-between ${
+            <label className={`block text-xs font-mono mb-2 uppercase tracking-wider transition-colors ${
               showError ? 'text-red-400' : 'text-cyan-400'
             }`}>
-              <span>▸ Access Code</span>
-              <span className="text-gray-600 text-xs">[ENCRYPTED]</span>
+              ▸ Access Code
             </label>
             <input
               type="password"
@@ -278,14 +254,14 @@ export default function Login() {
           {/* Submit button */}
           <button
             type="submit"
-            disabled={isLoading || dbStatus === 'offline'}
+            disabled={isLoading}
             className="relative w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-black font-mono font-bold rounded overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             style={{
               boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)'
             }}
           >
             <span className="relative z-10">
-              {isLoading ? 'ACCESSING...' : dbStatus === 'offline' ? '⚠ DATABASE OFFLINE' : '▸ INITIALIZE LOGIN'}
+              {isLoading ? 'ACCESSING...' : '▸ INITIALIZE LOGIN'}
             </span>
             <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-400 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
             {isLoading && (
@@ -324,11 +300,6 @@ export default function Login() {
                 }}
               ></div>
             ))}
-          </div>
-
-          {/* Timestamp */}
-          <div className="mt-3 text-center text-xs font-mono text-gray-700">
-            {new Date().toLocaleTimeString('en-US', { hour12: false })} UTC
           </div>
         </form>
       </div>
