@@ -13,75 +13,61 @@ console.log('FRONTEND_URL =', process.env.FRONTEND_URL);
 // ------------------ CORS ------------------
 const allowedOrigins = [
   process.env.FRONTEND_URL, // main frontend
-  'https://notecore-a4hnr23zr-justinlufts-projects.vercel.app', // preview URL
+  'https://notecore-a4hnr23zr-justinlufts-projects.vercel.app', // preview
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
     console.log('🔹 Incoming request Origin:', origin);
-
-    if (!origin) return callback(null, true); // curl / Postman / server-to-server
+    if (!origin) return callback(null, true); // allow Postman / curl
 
     if (allowedOrigins.includes(origin)) {
       console.log('✅ Origin allowed:', origin);
-      callback(null, origin); // must return origin string when using credentials
+      callback(null, origin); // must return exact origin for credentials
     } else {
       console.log('⚠️ CORS blocked for origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-user-id'],
-  credentials: true
 };
 
-// Apply CORS middleware globally
+// ------------------ Apply CORS ------------------
 app.use(cors(corsOptions));
+
+// Handle preflight OPTIONS requests **for all routes**
+app.options('*', cors(corsOptions));
 
 // ------------------ Body parser ------------------
 app.use(express.json());
 
-// ------------------ Logging middleware ------------------
-app.use((req, res, next) => {
-  console.log('🔹 Incoming request:', req.method, req.url);
-  console.log('Headers:', req.headers);
-  if (req.body && Object.keys(req.body).length) console.log('Body:', req.body);
-  next();
-});
-
 // ------------------ User ID middleware ------------------
 app.use((req, res, next) => {
   const userId = req.headers['x-user-id'];
-  if (userId) {
-    req.userId = parseInt(userId);
-    console.log('🔹 User ID attached:', req.userId);
-  }
+  if (userId) req.userId = parseInt(userId);
   next();
 });
 
 // ------------------ Auth routes ------------------
 app.post('/auth/login', async (req, res) => {
-  console.log('🔹 /auth/login called with body:', req.body);
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
   try {
     const result = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
     const user = result.rows[0];
-    if (!user || user.password !== password) {
-      console.log('⚠️ Invalid credentials for email:', email);
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    console.log('✅ Login success:', user.username);
+    if (!user || user.password !== password) return res.status(401).json({ error: 'Invalid credentials' });
+
     res.json({ userId: user.id, username: user.username });
   } catch (err) {
-    console.error('❌ Login error:', err);
+    console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 app.post('/auth/register', async (req, res) => {
-  console.log('🔹 /auth/register called with body:', req.body);
   const { username, email, password } = req.body;
   if (!username || !email || !password) return res.status(400).json({ error: 'All fields are required' });
 
@@ -90,10 +76,9 @@ app.post('/auth/register', async (req, res) => {
       'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username',
       [username, email, password]
     );
-    console.log('✅ Registration success:', result.rows[0].username);
     res.json({ userId: result.rows[0].id, username: result.rows[0].username });
   } catch (err) {
-    console.error('❌ Registration error:', err);
+    console.error(err);
     res.status(500).json({ error: 'Registration failed' });
   }
 });
@@ -102,21 +87,15 @@ app.post('/auth/register', async (req, res) => {
 app.use('/notes', notesRouter);
 
 // ------------------ Health check ------------------
-app.get('/', (req, res) => {
-  console.log('🔹 Health check called');
-  res.send('✅ Notecore backend is running.');
-});
+app.get('/', (req, res) => res.send('✅ Notecore backend is running.'));
 
 // ------------------ Start server ------------------
 const startServer = async () => {
   try {
     await pool.query('SELECT 1');
-    console.log('✅ DB connected successfully!');
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
+    app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
   } catch (err) {
-    console.error('❌ Failed to start server:', err);
+    console.error(err);
   }
 };
 
