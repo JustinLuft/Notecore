@@ -12,20 +12,20 @@ console.log('FRONTEND_URL =', process.env.FRONTEND_URL);
 
 // ------------------ CORS ------------------
 const allowedOrigins = [
-  process.env.FRONTEND_URL, // main frontend URL
+  process.env.FRONTEND_URL, // main frontend
   'https://notecore-a4hnr23zr-justinlufts-projects.vercel.app', // preview URL
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log('🔹 Incoming request Origin:', origin); // log origin of every request
+    console.log('🔹 Incoming request Origin:', origin);
 
-    // allow requests with no origin (like Postman / curl)
+    // allow requests with no origin (curl, Postman, Render health checks)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
       console.log('✅ Origin allowed:', origin);
-      callback(null, origin); // must return exact origin when using credentials
+      callback(null, origin); // MUST return origin string when using credentials
     } else {
       console.log('⚠️ CORS blocked for origin:', origin);
       callback(new Error('Not allowed by CORS'));
@@ -36,8 +36,8 @@ const corsOptions = {
   credentials: true
 };
 
-// Apply CORS middleware globally
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // handle preflight OPTIONS
 
 // ------------------ Body parser ------------------
 app.use(express.json());
@@ -46,7 +46,7 @@ app.use(express.json());
 app.use((req, res, next) => {
   console.log('🔹 Incoming request:', req.method, req.url);
   console.log('Headers:', req.headers);
-  if (req.body) console.log('Body:', req.body);
+  if (req.body && Object.keys(req.body).length) console.log('Body:', req.body);
   next();
 });
 
@@ -62,9 +62,7 @@ app.use((req, res, next) => {
 
 // ------------------ Auth routes ------------------
 app.post('/auth/login', async (req, res) => {
-  console.log('🔹 /auth/login called');
-  console.log('Request body:', req.body);
-
+  console.log('🔹 /auth/login called with body:', req.body);
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
