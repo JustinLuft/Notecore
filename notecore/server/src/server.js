@@ -36,11 +36,8 @@ const corsOptions = {
   credentials: true
 };
 
-// Apply CORS middleware
+// Apply CORS middleware globally
 app.use(cors(corsOptions));
-
-// Handle preflight OPTIONS requests for all routes
-app.options('*', cors(corsOptions));
 
 // ------------------ Body parser ------------------
 app.use(express.json());
