@@ -8,6 +8,7 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState('');
   const [showError, setShowError] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
+  const [loginSuccess, setLoginSuccess] = useState(false);
   const navigate = useNavigate();
 
   // Auto-hide error message
@@ -43,14 +44,19 @@ export default function Login() {
     setIsLoading(true);
     
     try {
+      console.log('🔐 Attempting login...', { email });
+      
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
         credentials: 'include',
-
       });
+      
+      console.log('📡 Response status:', res.status);
+      
       const data = await res.json();
+      console.log('📦 Response data:', data);
       
       if (!res.ok) {
         setIsLoading(false);
@@ -58,16 +64,31 @@ export default function Login() {
         return;
       }
       
-      // Store user data in memory
+      // ✅ FIXED: Store user data in BOTH localStorage AND window
+      localStorage.setItem('userId', data.userId.toString());
+      localStorage.setItem('username', data.username);
+      
+      // Also store in window for immediate access
       window.userId = data.userId;
       window.username = data.username;
       
-      // Success animation
+      console.log('✅ Login successful! User:', data.userId);
+      console.log('💾 Stored in localStorage:', {
+        userId: localStorage.getItem('userId'),
+        username: localStorage.getItem('username')
+      });
+      
+      // Show success state
+      setLoginSuccess(true);
+      
+      // Navigate after brief animation
       setTimeout(() => {
+        console.log('🚀 Navigating to dashboard...');
         navigate('/dashboard');
-      }, 1000);
+      }, 800);
+      
     } catch (err) {
-      console.error('Login failed:', err);
+      console.error('❌ Login failed:', err);
       setIsLoading(false);
       triggerError('ERROR: SERVER CONNECTION FAILED');
     }
@@ -106,6 +127,25 @@ export default function Login() {
       {/* Radial gradient glow */}
       <div className="absolute inset-0 bg-gradient-radial from-cyan-900/20 via-transparent to-transparent"></div>
 
+      {/* Success notification */}
+      {loginSuccess && (
+        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-50 animate-slide-down">
+          <div className="bg-green-900/90 backdrop-blur-xl border-2 border-green-500 rounded-lg px-6 py-4 shadow-lg"
+            style={{
+              boxShadow: '0 0 30px rgba(0, 255, 0, 0.8), inset 0 0 20px rgba(0, 255, 0, 0.2)',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="text-green-400 text-2xl font-bold">✓</div>
+              <div>
+                <div className="text-green-400 font-mono font-bold text-sm">ACCESS GRANTED</div>
+                <div className="text-green-300 font-mono text-xs mt-1">REDIRECTING TO DASHBOARD...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Error notification */}
       {showError && (
         <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-50 animate-slide-down">
@@ -131,47 +171,49 @@ export default function Login() {
         <form
           onSubmit={handleLogin}
           className={`relative bg-black/80 backdrop-blur-xl p-8 rounded-lg border-2 transition-all duration-300 ${
-            showError ? 'border-red-500 animate-shake' : 'border-cyan-500'
+            showError ? 'border-red-500 animate-shake' : loginSuccess ? 'border-green-500' : 'border-cyan-500'
           }`}
           style={{
             boxShadow: showError
               ? '0 0 40px rgba(255, 0, 0, 0.8), inset 0 0 20px rgba(255, 0, 0, 0.2)'
+              : loginSuccess
+              ? '0 0 40px rgba(0, 255, 0, 0.8), inset 0 0 20px rgba(0, 255, 0, 0.2)'
               : '0 0 40px rgba(0, 255, 255, 0.6), inset 0 0 20px rgba(0, 255, 255, 0.1)'
           }}
         >
           {/* Corner decorations */}
           <div className={`absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 transition-colors ${
-            showError ? 'border-red-400' : 'border-cyan-400'
+            showError ? 'border-red-400' : loginSuccess ? 'border-green-400' : 'border-cyan-400'
           }`}></div>
           <div className={`absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 transition-colors ${
-            showError ? 'border-red-400' : 'border-cyan-400'
+            showError ? 'border-red-400' : loginSuccess ? 'border-green-400' : 'border-cyan-400'
           }`}></div>
           <div className={`absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 transition-colors ${
-            showError ? 'border-red-400' : 'border-cyan-400'
+            showError ? 'border-red-400' : loginSuccess ? 'border-green-400' : 'border-cyan-400'
           }`}></div>
           <div className={`absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 transition-colors ${
-            showError ? 'border-red-400' : 'border-cyan-400'
+            showError ? 'border-red-400' : loginSuccess ? 'border-green-400' : 'border-cyan-400'
           }`}></div>
 
           {/* Corner accent dots */}
           <div className={`absolute top-1 left-1 w-1 h-1 rounded-full transition-colors ${
-            showError ? 'bg-red-400' : 'bg-cyan-400'
-          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
+            showError ? 'bg-red-400' : loginSuccess ? 'bg-green-400' : 'bg-cyan-400'
+          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : loginSuccess ? '0 0 4px rgba(0, 255, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
           <div className={`absolute top-1 right-1 w-1 h-1 rounded-full transition-colors ${
-            showError ? 'bg-red-400' : 'bg-cyan-400'
-          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
+            showError ? 'bg-red-400' : loginSuccess ? 'bg-green-400' : 'bg-cyan-400'
+          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : loginSuccess ? '0 0 4px rgba(0, 255, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
           <div className={`absolute bottom-1 left-1 w-1 h-1 rounded-full transition-colors ${
-            showError ? 'bg-red-400' : 'bg-cyan-400'
-          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
+            showError ? 'bg-red-400' : loginSuccess ? 'bg-green-400' : 'bg-cyan-400'
+          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : loginSuccess ? '0 0 4px rgba(0, 255, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
           <div className={`absolute bottom-1 right-1 w-1 h-1 rounded-full transition-colors ${
-            showError ? 'bg-red-400' : 'bg-cyan-400'
-          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
+            showError ? 'bg-red-400' : loginSuccess ? 'bg-green-400' : 'bg-cyan-400'
+          }`} style={{ boxShadow: showError ? '0 0 4px rgba(255, 0, 0, 0.8)' : loginSuccess ? '0 0 4px rgba(0, 255, 0, 0.8)' : '0 0 4px rgba(0, 255, 255, 0.8)' }}></div>
 
           {/* Animated scan line */}
           <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
             <div 
               className={`absolute w-full h-1 bg-gradient-to-r from-transparent to-transparent opacity-50 ${
-                showError ? 'via-red-400' : 'via-cyan-400'
+                showError ? 'via-red-400' : loginSuccess ? 'via-green-400' : 'via-cyan-400'
               }`}
               style={{ animation: 'scan 3s linear infinite' }}
             ></div>
@@ -180,20 +222,24 @@ export default function Login() {
           {/* Header */}
           <div className="mb-8">
             <h1 className={`text-3xl font-mono font-bold text-center mb-2 transition-all ${
-              showError ? 'text-red-500' : 'text-cyan-400'
+              showError ? 'text-red-500' : loginSuccess ? 'text-green-500' : 'text-cyan-400'
             }`} style={{
               textShadow: showError
                 ? '0 0 10px rgba(255, 0, 0, 1), 0 0 20px rgba(255, 0, 0, 0.8)'
+                : loginSuccess
+                ? '0 0 10px rgba(0, 255, 0, 1), 0 0 20px rgba(0, 255, 0, 0.8)'
                 : '0 0 10px rgba(0, 255, 255, 1), 0 0 20px rgba(0, 255, 255, 0.8)'
             }}>
-              {showError ? 'ACCESS_DENIED.exe' : 'NOTECORE_LOGIN.exe'}
+              {showError ? 'ACCESS_DENIED.exe' : loginSuccess ? 'ACCESS_GRANTED.exe' : 'NOTECORE_LOGIN.exe'}
             </h1>
             
             {/* System status indicators */}
             <div className="flex items-center justify-center gap-3 text-xs font-mono mb-4">
               <div className="flex items-center gap-1.5">
-                <span className={showError ? 'text-red-400' : 'text-green-400'}>●</span>
-                <span className="text-gray-400">{showError ? 'SECURITY.ALERT' : 'SYSTEM.ONLINE'}</span>
+                <span className={showError ? 'text-red-400' : loginSuccess ? 'text-green-400' : 'text-green-400'}>●</span>
+                <span className="text-gray-400">
+                  {showError ? 'SECURITY.ALERT' : loginSuccess ? 'AUTH.SUCCESS' : 'SYSTEM.ONLINE'}
+                </span>
               </div>
             </div>
 
@@ -210,7 +256,7 @@ export default function Login() {
           {/* Email input */}
           <div className="mb-4 relative group">
             <label className={`block text-xs font-mono mb-2 uppercase tracking-wider transition-colors flex items-center justify-between ${
-              showError ? 'text-red-400' : 'text-cyan-400'
+              showError ? 'text-red-400' : loginSuccess ? 'text-green-400' : 'text-cyan-400'
             }`}>
               <span>▸ User ID</span>
               <span className="text-gray-600 text-xs">[REQUIRED]</span>
@@ -220,26 +266,31 @@ export default function Login() {
               placeholder="user@notecore.io"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={`w-full px-4 py-3 bg-black/50 border rounded font-mono text-sm focus:outline-none focus:bg-black/70 transition-all placeholder-cyan-800 ${
+              disabled={loginSuccess}
+              className={`w-full px-4 py-3 bg-black/50 border rounded font-mono text-sm focus:outline-none focus:bg-black/70 transition-all placeholder-cyan-800 disabled:opacity-50 ${
                 showError 
                   ? 'border-red-600 text-red-300 focus:border-red-400'
+                  : loginSuccess
+                  ? 'border-green-600 text-green-300'
                   : 'border-cyan-600 text-cyan-300 focus:border-cyan-400'
               }`}
               style={{
                 boxShadow: showError 
                   ? '0 0 10px rgba(255, 0, 0, 0.2)'
+                  : loginSuccess
+                  ? '0 0 10px rgba(0, 255, 0, 0.2)'
                   : '0 0 10px rgba(0, 255, 255, 0.1)'
               }}
             />
             <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-300 group-focus-within:w-full w-0 ${
-              showError ? 'bg-red-400' : 'bg-cyan-400'
+              showError ? 'bg-red-400' : loginSuccess ? 'bg-green-400' : 'bg-cyan-400'
             }`}></div>
           </div>
 
           {/* Password input */}
           <div className="mb-6 relative group">
             <label className={`block text-xs font-mono mb-2 uppercase tracking-wider transition-colors flex items-center justify-between ${
-              showError ? 'text-red-400' : 'text-cyan-400'
+              showError ? 'text-red-400' : loginSuccess ? 'text-green-400' : 'text-cyan-400'
             }`}>
               <span>▸ Access Code</span>
               <span className="text-gray-600 text-xs">[ENCRYPTED]</span>
@@ -249,36 +300,51 @@ export default function Login() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={`w-full px-4 py-3 bg-black/50 border rounded font-mono text-sm focus:outline-none focus:bg-black/70 transition-all placeholder-cyan-800 ${
+              disabled={loginSuccess}
+              className={`w-full px-4 py-3 bg-black/50 border rounded font-mono text-sm focus:outline-none focus:bg-black/70 transition-all placeholder-cyan-800 disabled:opacity-50 ${
                 showError 
                   ? 'border-red-600 text-red-300 focus:border-red-400'
+                  : loginSuccess
+                  ? 'border-green-600 text-green-300'
                   : 'border-cyan-600 text-cyan-300 focus:border-cyan-400'
               }`}
               style={{
                 boxShadow: showError 
                   ? '0 0 10px rgba(255, 0, 0, 0.2)'
+                  : loginSuccess
+                  ? '0 0 10px rgba(0, 255, 0, 0.2)'
                   : '0 0 10px rgba(0, 255, 255, 0.1)'
               }}
             />
             <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-300 group-focus-within:w-full w-0 ${
-              showError ? 'bg-red-400' : 'bg-cyan-400'
+              showError ? 'bg-red-400' : loginSuccess ? 'bg-green-400' : 'bg-cyan-400'
             }`}></div>
           </div>
 
           {/* Submit button */}
           <button
             type="submit"
-            disabled={isLoading}
-            className="relative w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-black font-mono font-bold rounded overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            disabled={isLoading || loginSuccess}
+            className={`relative w-full py-3 font-mono font-bold rounded overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
+              loginSuccess 
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                : 'bg-gradient-to-r from-cyan-500 to-blue-500'
+            }`}
             style={{
-              boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)'
+              boxShadow: loginSuccess 
+                ? '0 0 20px rgba(0, 255, 0, 0.5)'
+                : '0 0 20px rgba(0, 255, 255, 0.5)'
             }}
           >
-            <span className="relative z-10">
-              {isLoading ? 'ACCESSING...' : '▸ INITIALIZE LOGIN'}
+            <span className="relative z-10 text-black">
+              {loginSuccess ? '✓ ACCESS GRANTED' : isLoading ? 'ACCESSING...' : '▸ INITIALIZE LOGIN'}
             </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-400 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-            {isLoading && (
+            <div className={`absolute inset-0 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 ${
+              loginSuccess
+                ? 'bg-gradient-to-r from-green-400 to-emerald-400'
+                : 'bg-gradient-to-r from-cyan-400 to-blue-400'
+            }`}></div>
+            {isLoading && !loginSuccess && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
               </div>
@@ -290,8 +356,10 @@ export default function Login() {
             <p className="text-xs text-gray-500 text-center font-mono">
               <span className="text-gray-600">NO ACCESS CODE?</span>{' '}
               <span
-                onClick={() => navigate('/register')}
-                className="text-cyan-400 hover:text-cyan-300 cursor-pointer transition-colors relative group"
+                onClick={() => !loginSuccess && navigate('/register')}
+                className={`text-cyan-400 hover:text-cyan-300 cursor-pointer transition-colors relative group ${
+                  loginSuccess ? 'opacity-50 pointer-events-none' : ''
+                }`}
                 style={{ textShadow: '0 0 5px rgba(0, 255, 255, 0.5)' }}
               >
                 [REGISTER_NEW_USER]
@@ -306,7 +374,7 @@ export default function Login() {
               <div
                 key={i}
                 className={`w-2 h-2 rounded-full opacity-50 ${
-                  showError ? 'bg-red-400' : 'bg-cyan-400'
+                  showError ? 'bg-red-400' : loginSuccess ? 'bg-green-400' : 'bg-cyan-400'
                 }`}
                 style={{
                   animation: `pulse 1.5s ease-in-out infinite`,
