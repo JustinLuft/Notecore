@@ -20,12 +20,11 @@ const corsOptions = {
   origin: function (origin, callback) {
     console.log('🔹 Incoming request Origin:', origin);
 
-    // allow requests with no origin (curl, Postman, Render health checks)
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // curl / Postman / server-to-server
 
     if (allowedOrigins.includes(origin)) {
       console.log('✅ Origin allowed:', origin);
-      callback(null, origin); // MUST return origin string when using credentials
+      callback(null, origin); // must return origin string when using credentials
     } else {
       console.log('⚠️ CORS blocked for origin:', origin);
       callback(new Error('Not allowed by CORS'));
@@ -36,8 +35,8 @@ const corsOptions = {
   credentials: true
 };
 
+// Apply CORS middleware globally
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // handle preflight OPTIONS
 
 // ------------------ Body parser ------------------
 app.use(express.json());
