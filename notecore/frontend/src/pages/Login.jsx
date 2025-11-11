@@ -296,6 +296,15 @@ export default function Login() {
                 [REGISTER_NEW_USER]
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-cyan-400 group-hover:w-full transition-all duration-300"></span>
               </span>
+              {' | '}
+              <span
+                onClick={() => navigate('/guide')}
+                className="text-yellow-400 hover:text-yellow-300 cursor-pointer transition-colors relative group"
+                style={{ textShadow: '0 0 5px rgba(255, 255, 0, 0.5)' }}
+              >
+                [ENTER_AS_GUIDE]
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
+              </span>
             </p>
           </div>
 
