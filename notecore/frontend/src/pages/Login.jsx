@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from "firebase/firestore";
+
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -32,67 +36,48 @@ export default function Login() {
     setPassword('');
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!email || !password) {
-      triggerError('ERROR: ALL FIELDS REQUIRED');
-      return;
+ const handleLogin = async (e) => {
+  e.preventDefault();
+
+  if (!email || !password) {
+    triggerError('ERROR: ALL FIELDS REQUIRED');
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    // Firebase sign-in
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // Store user info
+    localStorage.setItem('userId', user.uid);
+    localStorage.setItem('email', user.email);
+    window.userId = user.uid;
+    window.email = user.email;
+
+    setLoginSuccess(true);
+    setIsLoading(false);
+
+    // Navigate to dashboard after brief animation
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 800);
+  } catch (err) {
+    console.error('❌ Login failed:', err);
+    setIsLoading(false);
+
+    if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      triggerError('ERROR: INVALID CREDENTIALS');
+    } else if (err.code === 'auth/too-many-requests') {
+      triggerError('ERROR: TOO MANY ATTEMPTS, TRY LATER');
+    } else {
+      triggerError('ERROR: LOGIN FAILED');
     }
-    
-    setIsLoading(true);
-    
-    try {
-      console.log('🔐 Attempting login...', { email });
-      
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include',
-      });
-      
-      console.log('📡 Response status:', res.status);
-      
-      const data = await res.json();
-      console.log('📦 Response data:', data);
-      
-      if (!res.ok) {
-        setIsLoading(false);
-        triggerError(data.error || 'ERROR: INVALID CREDENTIALS');
-        return;
-      }
-      
-      // ✅ FIXED: Store user data in BOTH localStorage AND window
-      localStorage.setItem('userId', data.userId.toString());
-      localStorage.setItem('username', data.username);
-      
-      // Also store in window for immediate access
-      window.userId = data.userId;
-      window.username = data.username;
-      
-      console.log('✅ Login successful! User:', data.userId);
-      console.log('💾 Stored in localStorage:', {
-        userId: localStorage.getItem('userId'),
-        username: localStorage.getItem('username')
-      });
-      
-      // Show success state
-      setLoginSuccess(true);
-      
-      // Navigate after brief animation
-      setTimeout(() => {
-        console.log('🚀 Navigating to dashboard...');
-        navigate('/dashboard');
-      }, 800);
-      
-    } catch (err) {
-      console.error('❌ Login failed:', err);
-      setIsLoading(false);
-      triggerError('ERROR: SERVER CONNECTION FAILED');
-    }
-  };
+  }
+};
+
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-black overflow-hidden">

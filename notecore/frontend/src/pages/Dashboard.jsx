@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Plus, Zap } from 'lucide-react';
+import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { app } from '../firebase'; // your Firebase config
 import jsPDF from 'jspdf';
 
 export default function Dashboard() {
@@ -18,9 +21,12 @@ export default function Dashboard() {
 
   const editorRef = useRef(null);
   const navigate = useNavigate();
-  const username = localStorage.getItem('username') || 'GUEST';
-  const userId = localStorage.getItem('userId');
-  const API = `${import.meta.env.VITE_API_URL}/notes`;
+const userId = localStorage.getItem('userId');
+const [user, setUser] = useState({ username: 'GUEST' });
+
+
+  const db = getFirestore(app);
+  const notesCollection = collection(db, 'notes');
 
   const placeCaretAtEnd = (el) => {
     if (!el) return;
@@ -47,12 +53,11 @@ export default function Dashboard() {
     if (!userId) return navigate('/');
     setLoading(true);
     try {
-      const res = await fetch(API, {
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-      });
-      if (!res.ok) throw new Error('Failed to fetch notes');
-      const data = await res.json();
-      setNotes(Array.isArray(data) ? data : []);
+      const querySnapshot = await getDocs(notesCollection);
+      const data = querySnapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((note) => note.userId === userId);
+      setNotes(data);
     } catch (err) {
       console.error('Failed to fetch notes:', err);
       setNotes([]);
@@ -61,9 +66,27 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchNotes();
-  }, []);
+
+
+const fetchUserInfo = async () => {
+  if (!userId) return navigate('/'); // redirect if no UID
+  try {
+    const userDocRef = doc(getFirestore(app), 'users', userId);
+    const docSnap = await getDoc(userDocRef);
+    if (docSnap.exists()) {
+      setUser({ username: docSnap.data().username || 'GUEST' });
+    } else {
+      console.warn('No user document found!');
+    }
+  } catch (err) {
+    console.error('Failed to fetch user info:', err);
+  }
+};
+
+ useEffect(() => {
+  fetchUserInfo();
+  fetchNotes();
+}, []);
 
   useEffect(() => {
     if (currentNote) {
@@ -95,14 +118,16 @@ export default function Dashboard() {
 
   const createNewNote = async () => {
     try {
-      const res = await fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-        body: JSON.stringify({ title: 'UNTITLED_FILE.txt', content: '' }),
-      });
-      const newNote = await res.json();
-      setNotes((prev) => [newNote, ...prev]);
-      setCurrentNote(newNote.id);
+      const newDocRef = doc(notesCollection);
+      const newNote = {
+        title: 'UNTITLED_FILE.txt',
+        content: '',
+        userId,
+        createdAt: Date.now(),
+      };
+      await setDoc(newDocRef, newNote);
+      setNotes((prev) => [{ id: newDocRef.id, ...newNote }, ...prev]);
+      setCurrentNote(newDocRef.id);
     } catch (err) {
       console.error('Failed to create note:', err);
     }
@@ -113,15 +138,17 @@ export default function Dashboard() {
     setSaveStatus('UPLOADING...');
     try {
       if (editorRef.current) setContent(editorRef.current.innerHTML);
-      const res = await fetch(`${API}/${currentNote}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-        body: JSON.stringify({
+      const noteRef = doc(db, 'notes', currentNote);
+      await setDoc(
+        noteRef,
+        {
           title,
           content: editorRef.current?.innerHTML ?? content,
-        }),
-      });
-      if (!res.ok) throw new Error('Failed to save note');
+          userId,
+          updatedAt: Date.now(),
+        },
+        { merge: true }
+      );
       setNotes((prev) =>
         prev.map((note) =>
           note.id === currentNote
@@ -142,11 +169,8 @@ export default function Dashboard() {
   const confirmDeleteNote = async () => {
     if (!confirmDelete) return;
     try {
-      const res = await fetch(`${API}/${confirmDelete}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-      });
-      if (!res.ok) throw new Error('Failed to delete note');
+      const noteRef = doc(db, 'notes', confirmDelete);
+      await deleteDoc(noteRef);
       setNotes((prev) => prev.filter((note) => note.id !== confirmDelete));
       if (currentNote === confirmDelete) setCurrentNote(null);
     } catch (err) {
@@ -278,7 +302,7 @@ export default function Dashboard() {
               {saveStatus}
             </span>
 
-            <span className="text-cyan-400 font-mono text-sm">{username}</span>
+<span className="text-cyan-400 font-mono text-sm">{user.username}</span>
 
             <button
               onClick={saveNote}

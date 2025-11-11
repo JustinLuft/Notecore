@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebase';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { app } from '../firebase'; // make sure your firebase config exports `app`
+
 
 export default function Register() {
   const [username, setUsername] = useState('');
@@ -11,31 +16,30 @@ export default function Register() {
   const [errorMessage, setErrorMessage] = useState('');
   const [showError, setShowError] = useState(false);
   const [registerAttempts, setRegisterAttempts] = useState(0);
+
   const navigate = useNavigate();
 
   // Auto-hide error message
   useEffect(() => {
-    if (showError) {
-      const timer = setTimeout(() => {
-        setShowError(false);
-        setErrorMessage('');
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
+    if (!showError) return;
+    const timer = setTimeout(() => {
+      setShowError(false);
+      setErrorMessage('');
+    }, 4000);
+    return () => clearTimeout(timer);
   }, [showError]);
 
-  // Calculate password strength
+  // Password strength calculation
   useEffect(() => {
-    if (!password) {
-      setPasswordStrength(0);
-      return;
-    }
+    if (!password) return setPasswordStrength(0);
+
     let strength = 0;
     if (password.length >= 8) strength += 25;
     if (password.length >= 12) strength += 25;
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 25;
     if (/[0-9]/.test(password)) strength += 12.5;
     if (/[^a-zA-Z0-9]/.test(password)) strength += 12.5;
+
     setPasswordStrength(Math.min(strength, 100));
   }, [password]);
 
@@ -57,56 +61,75 @@ export default function Register() {
     setErrorMessage(message);
     setShowError(true);
     setRegisterAttempts(prev => prev + 1);
-    
-    // Clear fields
     setUsername('');
     setEmail('');
     setPassword('');
     setConfirm('');
   };
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!username || !email || !password) {
-      triggerError('ERROR: ALL FIELDS REQUIRED');
-      return;
-    }
-    
-    if (password !== confirm) {
-      triggerError('ERROR: PASSWORDS DO NOT MATCH');
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password })
-      });
-      const data = await res.json();
-      
-      if (!res.ok) {
-        setIsLoading(false);
-        triggerError(data.error || 'ERROR: REGISTRATION FAILED');
-        return;
-      }
-      
-      // Success - show success message and redirect
-      setErrorMessage('');
-      setShowError(false);
-      setTimeout(() => {
-        navigate('/');
-      }, 500);
-    } catch (err) {
-      console.error('Registration failed:', err);
-      setIsLoading(false);
-      triggerError('ERROR: SERVER CONNECTION FAILED');
-    }
-  };
+
+
+const db = getFirestore(app);
+
+const handleRegister = async (e) => {
+  e.preventDefault();
+
+  if (!username || !email || !password) {
+    triggerError('ERROR: ALL FIELDS REQUIRED');
+    return;
+  }
+
+  if (password !== confirm) {
+    triggerError('ERROR: PASSWORDS DO NOT MATCH');
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    // 1. Create user with Firebase Auth
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+    // 2. Set displayName
+    await updateProfile(userCredential.user, { displayName: username });
+
+    // 3. Save user info in Firestore
+    const userDocRef = doc(db, 'users', userCredential.user.uid); // UID as document ID
+    await setDoc(userDocRef, {
+      uid: userCredential.user.uid,
+      username,
+      email,
+      createdAt: Date.now(),
+    });
+
+    // 4. Optional: save locally for session
+    localStorage.setItem('username', username);
+    localStorage.setItem('userId', userCredential.user.uid);
+
+    setIsLoading(false);
+    setErrorMessage('');
+    setShowError(false);
+
+    // 5. Redirect
+    navigate('/dashboard');
+  } catch (err) {
+    console.error('Registration failed:', err);
+    triggerError(err.message || 'ERROR: REGISTRATION FAILED');
+    setIsLoading(false);
+  }
+};
+
+
+
+  const inputBaseClasses = (hasError) =>
+    `w-full px-4 py-3 bg-black/50 border rounded font-mono text-sm focus:outline-none focus:bg-black/70 transition-all placeholder-cyan-800 ${
+      hasError ? 'border-red-600 text-red-300 focus:border-red-400' : 'border-cyan-600 text-cyan-300 focus:border-cyan-400'
+    }`;
+
+  const borderColor = showError ? 'border-red-400' : 'border-cyan-400';
+  const textColor = showError ? 'text-red-400' : 'text-cyan-400';
+  const shadowColor = showError ? 'rgba(255,0,0,0.2)' : 'rgba(0,255,255,0.1)';
+
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-black overflow-hidden">
