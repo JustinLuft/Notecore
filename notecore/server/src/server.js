@@ -11,20 +11,21 @@ console.log('🚀 Starting server...');
 console.log('FRONTEND_URL =', process.env.FRONTEND_URL);
 
 // ------------------ CORS ------------------
-// Allow multiple origins
 const allowedOrigins = [
   process.env.FRONTEND_URL, // main frontend URL
-  'https://notecore-a4hnr23zr-justinlufts-projects.vercel.app', // add more preview URLs here
-  // Add other URLs as needed
+  'https://notecore-a4hnr23zr-justinlufts-projects.vercel.app', // preview URL
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // allow requests with no origin (like Postman)
+    console.log('🔹 Incoming request Origin:', origin); // log origin of every request
+
+    // allow requests with no origin (like Postman / curl)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
-      callback(null, true);
+      console.log('✅ Origin allowed:', origin);
+      callback(null, origin); // must return exact origin when using credentials
     } else {
       console.log('⚠️ CORS blocked for origin:', origin);
       callback(new Error('Not allowed by CORS'));
@@ -35,17 +36,22 @@ const corsOptions = {
   credentials: true
 };
 
+// Apply CORS middleware
 app.use(cors(corsOptions));
 
+// Handle preflight OPTIONS requests for all routes
+app.options('*', cors(corsOptions));
+
+// ------------------ Body parser ------------------
+app.use(express.json());
 
 // ------------------ Logging middleware ------------------
 app.use((req, res, next) => {
   console.log('🔹 Incoming request:', req.method, req.url);
+  console.log('Headers:', req.headers);
+  if (req.body) console.log('Body:', req.body);
   next();
 });
-
-// ------------------ Body parser ------------------
-app.use(express.json());
 
 // ------------------ User ID middleware ------------------
 app.use((req, res, next) => {
@@ -59,7 +65,9 @@ app.use((req, res, next) => {
 
 // ------------------ Auth routes ------------------
 app.post('/auth/login', async (req, res) => {
-  console.log('🔹 /auth/login called with body:', req.body);
+  console.log('🔹 /auth/login called');
+  console.log('Request body:', req.body);
+
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
@@ -67,7 +75,7 @@ app.post('/auth/login', async (req, res) => {
     const result = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
     const user = result.rows[0];
     if (!user || user.password !== password) {
-      console.log('⚠️ Invalid credentials');
+      console.log('⚠️ Invalid credentials for email:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     console.log('✅ Login success:', user.username);
