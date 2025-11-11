@@ -11,36 +11,36 @@ console.log('🚀 Starting server...');
 console.log('FRONTEND_URL =', process.env.FRONTEND_URL);
 
 // ------------------ CORS ------------------
+// Allow multiple origins
 const allowedOrigins = [
   process.env.FRONTEND_URL, // main frontend URL
-  'https://notecore-a4hnr23zr-justinlufts-projects.vercel.app', // Vercel preview URLs
-  // Add any other allowed origins here
+  'https://notecore-a4hnr23zr-justinlufts-projects.vercel.app', // add more preview URLs here
+  // Add other URLs as needed
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman / curl
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    console.log('⚠️ CORS blocked for origin:', origin);
-    callback(null, false); // respond with 403 for disallowed origins
+    // allow requests with no origin (like Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('⚠️ CORS blocked for origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-user-id'],
-  credentials: true,
+  credentials: true
 };
 
-// ------------------ Preflight OPTIONS handler ------------------
-app.options('*', cors(corsOptions));
-
-// ------------------ Apply CORS middleware ------------------
 app.use(cors(corsOptions));
+
 
 // ------------------ Logging middleware ------------------
 app.use((req, res, next) => {
   console.log('🔹 Incoming request:', req.method, req.url);
-  if (req.method === 'OPTIONS') {
-    console.log('🔹 OPTIONS preflight from', req.headers.origin);
-  }
   next();
 });
 
