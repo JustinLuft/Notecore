@@ -27,16 +27,18 @@ const corsOptions = {
       callback(null, true);
     } else {
       console.log('⚠️ CORS blocked for origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false); // respond with 403 instead of throwing an error
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-user-id'],
-  credentials: true
+  credentials: true,
 };
 
+// Apply CORS middleware
 app.use(cors(corsOptions));
-
+// Handle preflight requests
+app.options('*', cors(corsOptions));
 
 // ------------------ Logging middleware ------------------
 app.use((req, res, next) => {
